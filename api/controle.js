@@ -1,25 +1,35 @@
 // api/controle.js
 export default async function handler(req, res) {
-  // Configurações via variáveis de ambiente (definidas no painel da Vercel)
-  const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-  const TOKEN_SECRETO = process.env.TOKEN_SECRETO;
-
-  // Apenas POST é aceito
+  // Logs para depuração (visíveis no painel da Vercel em Functions > Logs)
+  console.log('Requisição recebida:', req.method);
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ erro: 'Método não permitido' });
   }
 
   try {
-    const { acao, ...dadosExtras } = req.body;
+    // Verifica se as variáveis de ambiente existem
+    const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+    const TOKEN_SECRETO = process.env.TOKEN_SECRETO;
 
-    // Monta o payload que o Apps Script espera, incluindo o token
+    if (!APPS_SCRIPT_URL) {
+      console.error('APPS_SCRIPT_URL não definida');
+      return res.status(500).json({ erro: 'Configuração do servidor incompleta: URL ausente' });
+    }
+    if (!TOKEN_SECRETO) {
+      console.error('TOKEN_SECRETO não definido');
+      return res.status(500).json({ erro: 'Configuração do servidor incompleta: Token ausente' });
+    }
+
+    const { acao, ...dadosExtras } = req.body;
+    console.log('Ação:', acao, 'Dados:', dadosExtras);
+
     const payload = {
       token: TOKEN_SECRETO,
       acao,
       ...dadosExtras
     };
 
-    // Encaminha a requisição para o Google Apps Script
     const resposta = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,8 +37,10 @@ export default async function handler(req, res) {
     });
 
     const data = await resposta.json();
+    console.log('Resposta do Apps Script:', data);
     return res.status(200).json(data);
   } catch (error) {
-    return res.status(500).json({ erro: 'Erro interno no servidor' });
+    console.error('Erro na função:', error.message);
+    return res.status(500).json({ erro: 'Erro interno: ' + error.message });
   }
 }

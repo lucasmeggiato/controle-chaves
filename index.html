@@ -5,27 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Chaves – Central de Segurança</title>
     
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     
+    <!-- Estilos externos -->
     <link rel="stylesheet" href="style.css">
-    
-    <script>
-        function verificarSenha() {
-            const senhaCorreta = "Gyn@2026";
-            const tentativa = prompt("Digite a senha para acessar o sistema:");
-            if (tentativa !== senhaCorreta) {
-                document.body.innerHTML = "<h2 style='text-align:center; margin-top:80px; color:#ef4444;'>Acesso negado.</h2>";
-                throw new Error("Senha incorreta");
-            }
-        }
-        window.onload = verificarSenha;
-    </script>
 </head>
 <body>
     <div class="dashboard">
-        
+        <!-- Cabeçalho -->
         <div class="painel-header">
             <div class="header-titulo">
                 <h1>🔑 Controle de Chaves</h1>
@@ -34,6 +24,7 @@
             <div class="relogio" id="relogio">00:00:00</div>
         </div>
 
+        <!-- Estatísticas -->
         <div class="estatisticas">
             <div class="card-stat total">
                 <h3>Total de Chaves</h3>
@@ -49,6 +40,7 @@
             </div>
         </div>
 
+        <!-- Painel de Retirada -->
         <div class="painel-controle">
             <h3 style="margin-bottom:15px;">Retirar chave</h3>
             <div class="input-group">
@@ -58,6 +50,7 @@
             <div id="msgRetirada" class="msg"></div>
         </div>
 
+        <!-- Chaves em uso -->
         <h3 style="margin:20px 0 10px;">Chaves em uso</h3>
         <ul id="listaPendentes" class="lista-chaves">
             <li>Nenhuma chave em uso.</li>
@@ -65,6 +58,7 @@
         <div id="msgDevolucao" class="msg"></div>
     </div>
 
+    <!-- Script externo (lógica principal) -->
     <script src="script.js"></script>
 </body>
 </html>
