@@ -2,63 +2,94 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Controle de Chaves – Central de Segurança</title>
-    
-    <!-- Google Fonts -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- Estilos externos -->
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet"
+    >
+
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="dashboard">
-        <!-- Cabeçalho -->
         <div class="painel-header">
             <div class="header-titulo">
                 <h1>🔑 Controle de Chaves</h1>
-                <div id="statusOperador" class="status-sistema ativo">Operador: <span id="nomeOperador">Verificando...</span></div>
+
+                <div id="statusOperador" class="status-sistema ativo">
+                    Operador:
+                    <span id="nomeOperador">Verificando...</span>
+                </div>
             </div>
+
             <div class="relogio" id="relogio">00:00:00</div>
         </div>
 
-        <!-- Estatísticas -->
         <div class="estatisticas">
             <div class="card-stat total">
                 <h3>Total de Chaves</h3>
                 <p id="totalChaves">0</p>
             </div>
+
             <div class="card-stat em-uso">
                 <h3>Em Uso</h3>
                 <p id="emUso">0</p>
             </div>
+
             <div class="card-stat disponivel">
                 <h3>Disponíveis</h3>
                 <p id="disponiveis">0</p>
             </div>
         </div>
 
-        <!-- Painel de Retirada -->
         <div class="painel-controle">
-            <h3 style="margin-bottom:15px;">Retirar chave</h3>
+            <h3>Retirar chave</h3>
+
             <div class="input-group">
-                <select id="chaveDisponivel"><option>Carregando...</option></select>
+                <input
+                    type="text"
+                    id="solicitante"
+                    placeholder="Nome de quem está retirando"
+                    autocomplete="off"
+                    required
+                >
+
+                <input
+                    type="text"
+                    id="setor"
+                    placeholder="Setor do solicitante"
+                    autocomplete="off"
+                    required
+                >
+
+                <select id="chaveDisponivel">
+                    <option>Carregando...</option>
+                </select>
+
                 <button onclick="retirar()">Retirar</button>
             </div>
+
             <div id="msgRetirada" class="msg"></div>
         </div>
 
-        <!-- Chaves em uso -->
-        <h3 style="margin:20px 0 10px;">Chaves em uso</h3>
+        <h3 class="titulo-lista">Chaves em uso</h3>
+
         <ul id="listaPendentes" class="lista-chaves">
             <li>Nenhuma chave em uso.</li>
         </ul>
+
         <div id="msgDevolucao" class="msg"></div>
     </div>
 
-    <!-- Script externo (lógica principal) -->
     <script src="script.js"></script>
 </body>
 </html>
