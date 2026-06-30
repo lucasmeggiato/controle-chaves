@@ -5,7 +5,7 @@ let emUso = 0;
 let disponiveis = 0;
 let todasChavesDisponiveis = [];
 
-const INTERVALO_ATUALIZACAO_MS = 15000;
+const INTERVALO_ATUALIZACAO_MS = 30000;
 let atualizacaoEmAndamento = false;
 
 async function fetchAPI(acao, dadosExtras = {}) {
@@ -155,7 +155,7 @@ function renderizarChavesFiltradas(chaveSelecionadaAntes = '') {
     }
 }
 
-async function carregarChavesDisponiveis() {
+async function carregarChavesDisponiveis(silencioso = false) {
     const sel = document.getElementById('chaveDisponivel');
 
     if (!sel) {
@@ -164,7 +164,7 @@ async function carregarChavesDisponiveis() {
 
     const chaveSelecionadaAntes = sel.value;
 
-    if (todasChavesDisponiveis.length === 0) {
+    if (!silencioso) {
         sel.innerHTML = '<option>Carregando...</option>';
     }
 
@@ -172,10 +172,11 @@ async function carregarChavesDisponiveis() {
         const resp = await fetchAPI('getChavesDisponiveis');
 
         if (resp.erro) {
-            sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
-            todasChavesDisponiveis = [];
-            disponiveis = 0;
-            atualizarEstatisticas();
+            if (!silencioso) {
+                sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
+            }
+
+            console.error(resp.erro);
             return;
         }
 
@@ -190,10 +191,11 @@ async function carregarChavesDisponiveis() {
         renderizarChavesFiltradas(chaveSelecionadaAntes);
         atualizarEstatisticas();
     } catch (erro) {
-        sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
-        todasChavesDisponiveis = [];
-        disponiveis = 0;
-        atualizarEstatisticas();
+        if (!silencioso) {
+            sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
+        }
+
+        console.error('Erro ao carregar chaves:', erro);
     }
 }
 
@@ -206,27 +208,31 @@ function escaparTexto(texto) {
         .replace(/'/g, '&#039;');
 }
 
-async function carregarPendentes() {
+async function carregarPendentes(silencioso = false) {
     const lista = document.getElementById('listaPendentes');
 
     if (!lista) {
         return;
     }
 
-    lista.innerHTML = '<li>Carregando...</li>';
+    if (!silencioso) {
+        lista.innerHTML = '<li>Carregando...</li>';
+    }
 
     try {
         const resp = await fetchAPI('getPendentes');
 
-        lista.innerHTML = '';
-
         if (resp.erro) {
-            lista.innerHTML =
-                `<li>Erro ao carregar registros: ${escaparTexto(resp.erro)}</li>`;
-            emUso = 0;
-            atualizarEstatisticas();
+            if (!silencioso) {
+                lista.innerHTML =
+                    `<li>Erro ao carregar registros: ${escaparTexto(resp.erro)}</li>`;
+            }
+
+            console.error(resp.erro);
             return;
         }
+
+        lista.innerHTML = '';
 
         if (resp.pendentes && resp.pendentes.length > 0) {
             resp.pendentes.forEach((p) => {
@@ -287,9 +293,86 @@ async function carregarPendentes() {
 
         atualizarEstatisticas();
     } catch (erro) {
-        lista.innerHTML = '<li>Erro ao carregar chaves em uso.</li>';
-        emUso = 0;
-        atualizarEstatisticas();
+        if (!silencioso) {
+            lista.innerHTML = '<li>Erro ao carregar chaves em uso.</li>';
+        }
+
+        console.error('Erro ao carregar pendentes:', erro);
+    }
+}
+
+async function carregarHistorico(silencioso = false) {
+    const lista = document.getElementById('listaHistorico');
+
+    if (!lista) {
+        return;
+    }
+
+    if (!silencioso) {
+        lista.innerHTML = '<li class="item-vazio">Carregando histórico...</li>';
+    }
+
+    try {
+        const resp = await fetchAPI('getHistoricoRecentes', {
+            limite: 12
+        });
+
+        if (resp.erro) {
+            if (!silencioso) {
+                lista.innerHTML =
+                    `<li class="item-vazio">Erro ao carregar histórico: ${escaparTexto(resp.erro)}</li>`;
+            }
+
+            console.error(resp.erro);
+            return;
+        }
+
+        lista.innerHTML = '';
+
+        if (resp.historico && resp.historico.length > 0) {
+            resp.historico.forEach((item) => {
+                const li = document.createElement('li');
+
+                const tipoSeguro = escaparTexto(item.tipo);
+                const chaveSegura = escaparTexto(item.chave);
+                const operadorSeguro = escaparTexto(item.operador);
+                const solicitanteSeguro = escaparTexto(item.solicitante);
+                const setorSeguro = escaparTexto(item.setor);
+                const dataTextoSeguro = escaparTexto(item.dataTexto);
+
+                const isDevolucao = item.tipo === 'Devolução';
+                const classeBadge = isDevolucao ? 'badge-devolucao' : 'badge-retirada';
+                const textoOperador = isDevolucao ? 'Recebida por' : 'Entregue por';
+
+                li.innerHTML = `
+                    <span class="badge-evento ${classeBadge}">
+                        ${tipoSeguro}
+                    </span>
+
+                    <div class="historico-info">
+                        <strong>Chave: ${chaveSegura}</strong>
+                        <span>${textoOperador}: ${operadorSeguro}</span>
+                        <span>Solicitante: ${solicitanteSeguro} | Setor: ${setorSeguro}</span>
+                    </div>
+
+                    <div class="historico-data">
+                        ${dataTextoSeguro}
+                    </div>
+                `;
+
+                lista.appendChild(li);
+            });
+        } else {
+            lista.innerHTML =
+                '<li class="item-vazio">Nenhuma movimentação registrada.</li>';
+        }
+    } catch (erro) {
+        if (!silencioso) {
+            lista.innerHTML =
+                '<li class="item-vazio">Erro ao carregar histórico.</li>';
+        }
+
+        console.error('Erro ao carregar histórico:', erro);
     }
 }
 
@@ -360,7 +443,7 @@ async function retirar() {
                 campoFiltro.value = '';
             }
 
-            await atualizarDadosDaTela();
+            await atualizarDadosDaTela(true);
         } else {
             mostrarMensagem(
                 'msgRetirada',
@@ -412,7 +495,7 @@ async function devolver(chave) {
         if (resp.sucesso) {
             mostrarMensagem('msgDevolucao', '✅ Devolução registrada!');
 
-            await atualizarDadosDaTela();
+            await atualizarDadosDaTela(true);
         } else {
             mostrarMensagem(
                 'msgDevolucao',
@@ -429,24 +512,17 @@ async function devolver(chave) {
     }
 }
 
-async function atualizarDadosDaTela() {
+async function atualizarDadosDaTela(silencioso = true) {
     if (atualizacaoEmAndamento) {
         return;
     }
 
     atualizacaoEmAndamento = true;
 
-    const selectChave = document.getElementById('chaveDisponivel');
-    const chaveSelecionadaAntes = selectChave ? selectChave.value : '';
-
     try {
-        await carregarChavesDisponiveis();
-
-        if (selectChave && chaveSelecionadaAntes) {
-            renderizarChavesFiltradas(chaveSelecionadaAntes);
-        }
-
-        await carregarPendentes();
+        await carregarChavesDisponiveis(silencioso);
+        await carregarPendentes(silencioso);
+        await carregarHistorico(silencioso);
     } catch (erro) {
         console.error('Erro na atualização automática:', erro);
     } finally {
@@ -456,7 +532,7 @@ async function atualizarDadosDaTela() {
 
 window.addEventListener('load', async () => {
     await verificarOperador();
-    await atualizarDadosDaTela();
+    await atualizarDadosDaTela(false);
 
     const campoFiltro = document.getElementById('filtroChave');
 
@@ -467,6 +543,6 @@ window.addEventListener('load', async () => {
     }
 
     setInterval(async () => {
-        await atualizarDadosDaTela();
+        await atualizarDadosDaTela(true);
     }, INTERVALO_ATUALIZACAO_MS);
 });

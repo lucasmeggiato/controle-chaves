@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;700;800&display=swap"
         rel="stylesheet"
     >
 
@@ -21,7 +21,8 @@
 
 <body>
     <div class="dashboard">
-        <div class="painel-header">
+
+        <header class="painel-header">
             <div class="header-titulo">
                 <h1>🔑 Controle de Chaves</h1>
 
@@ -32,9 +33,9 @@
             </div>
 
             <div class="relogio" id="relogio">00:00:00</div>
-        </div>
+        </header>
 
-        <div class="estatisticas">
+        <section class="estatisticas">
             <div class="card-stat total">
                 <h3>Total de Chaves</h3>
                 <p id="totalChaves">0</p>
@@ -49,9 +50,9 @@
                 <h3>Disponíveis</h3>
                 <p id="disponiveis">0</p>
             </div>
-        </div>
+        </section>
 
-        <div class="painel-controle">
+        <section class="painel-controle">
             <h3>Retirar chave</h3>
 
             <div class="input-group">
@@ -82,19 +83,35 @@
                     <option>Carregando...</option>
                 </select>
 
-                <button onclick="retirar()">Retirar</button>
+                <button type="button" onclick="retirar()">Retirar</button>
             </div>
 
             <div id="msgRetirada" class="msg"></div>
-        </div>
+        </section>
 
-        <h3 class="titulo-lista">Chaves em uso</h3>
+        <section class="painel-lista">
+            <h3 class="titulo-lista">Chaves em uso</h3>
 
-        <ul id="listaPendentes" class="lista-chaves">
-            <li>Nenhuma chave em uso.</li>
-        </ul>
+            <ul id="listaPendentes" class="lista-chaves">
+                <li>Carregando chaves em uso...</li>
+            </ul>
 
-        <div id="msgDevolucao" class="msg"></div>
+            <div id="msgDevolucao" class="msg"></div>
+        </section>
+
+        <section class="painel-historico">
+            <div class="historico-topo">
+                <div>
+                    <h3>Últimas movimentações</h3>
+                    <p>Retiradas e devoluções recentes</p>
+                </div>
+            </div>
+
+            <ul id="listaHistorico" class="lista-historico">
+                <li class="item-vazio">Carregando histórico...</li>
+            </ul>
+        </section>
+
     </div>
 
     <script src="script.js"></script>
