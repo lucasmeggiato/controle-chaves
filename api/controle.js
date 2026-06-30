@@ -16,7 +16,6 @@ export default async function handler(req, res) {
     const payload = { token: TOKEN_SECRETO, acao, ...dadosExtras };
     const body = JSON.stringify(payload);
 
-    // Envia manualmente com Content-Length e sem seguir redirecionamentos
     const resposta = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: {
@@ -24,11 +23,10 @@ export default async function handler(req, res) {
         'Content-Length': Buffer.byteLength(body).toString()
       },
       body: body,
-      redirect: 'manual' // Importante: não seguir redirecionamentos
+      redirect: 'manual'
     });
 
     if (resposta.status >= 300 && resposta.status < 400) {
-      // Redirecionamento detectado – algo errado com a URL
       return res.status(500).json({ erro: 'Redirecionamento detectado, verifique a URL' });
     }
 
