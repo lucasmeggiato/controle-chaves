@@ -19,35 +19,25 @@ export default async function handler(req, res) {
     const payload = { token: TOKEN_SECRETO, acao, ...dadosExtras };
     const body = JSON.stringify(payload);
 
-    console.log('Enviando para:', APPS_SCRIPT_URL);
     console.log('Payload:', body);
 
     const resposta = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body).toString()
-      },
-      body: body,
-      redirect: 'manual'
+      headers: { 'Content-Type': 'application/json' },
+      body: body
     });
 
-    console.log('Status da resposta:', resposta.status);
-
-    if (resposta.status >= 300 && resposta.status < 400) {
-      console.error('Redirecionamento detectado');
-      return res.status(500).json({ erro: 'Redirecionamento detectado, verifique a URL' });
-    }
+    console.log('Status:', resposta.status);
 
     const texto = await resposta.text();
-    console.log('Resposta bruta:', texto.substring(0, 200));
+    console.log('Resposta bruta (primeiros 200 caracteres):', texto.substring(0, 200));
 
     let data;
     try {
       data = JSON.parse(texto);
     } catch (e) {
-      console.error('Resposta não é JSON:', texto.substring(0, 300));
-      return res.status(500).json({ erro: 'Resposta inválida do servidor' });
+      console.error('Resposta não é JSON:', texto);
+      return res.status(500).json({ erro: 'Resposta inválida do servidor: ' + texto.substring(0, 100) });
     }
 
     return res.status(200).json(data);
