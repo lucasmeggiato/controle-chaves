@@ -3,9 +3,13 @@ const SCRIPT_URL = '/api/controle';
 let totalChaves = 0;
 let emUso = 0;
 let disponiveis = 0;
+
 let todasChavesDisponiveis = [];
+let historicoCompleto = [];
 
 const INTERVALO_ATUALIZACAO_MS = 30000;
+const LIMITE_HISTORICO = 80;
+
 let atualizacaoEmAndamento = false;
 
 async function fetchAPI(acao, dadosExtras = {}) {
@@ -301,6 +305,113 @@ async function carregarPendentes(silencioso = false) {
     }
 }
 
+function historicoCombinaComFiltro(item, filtro) {
+    const filtroNormalizado = normalizarTexto(filtro).trim();
+
+    if (!filtroNormalizado) {
+        return true;
+    }
+
+    const textoBusca = [
+        item.tipo,
+        item.chave,
+        item.operador,
+        item.solicitante,
+        item.setor,
+        item.dataTexto
+    ].join(' ');
+
+    return normalizarTexto(textoBusca).includes(filtroNormalizado);
+}
+
+function atualizarContadorHistorico(totalExibido, totalGeral) {
+    const contador = document.getElementById('contadorHistorico');
+
+    if (!contador) {
+        return;
+    }
+
+    if (totalGeral === 0) {
+        contador.textContent = '0 registros';
+        return;
+    }
+
+    if (totalExibido === totalGeral) {
+        contador.textContent =
+            totalGeral === 1 ? '1 registro' : `${totalGeral} registros`;
+        return;
+    }
+
+    contador.textContent = `${totalExibido} de ${totalGeral}`;
+}
+
+function renderizarHistorico() {
+    const lista = document.getElementById('listaHistorico');
+    const campoFiltro = document.getElementById('filtroHistorico');
+
+    if (!lista) {
+        return;
+    }
+
+    const filtro = campoFiltro ? campoFiltro.value : '';
+
+    const historicoFiltrado = historicoCompleto.filter((item) =>
+        historicoCombinaComFiltro(item, filtro)
+    );
+
+    lista.innerHTML = '';
+
+    atualizarContadorHistorico(
+        historicoFiltrado.length,
+        historicoCompleto.length
+    );
+
+    if (historicoCompleto.length === 0) {
+        lista.innerHTML =
+            '<li class="item-vazio">Nenhuma movimentação registrada.</li>';
+        return;
+    }
+
+    if (historicoFiltrado.length === 0) {
+        lista.innerHTML =
+            '<li class="item-vazio">Nenhum resultado encontrado para a pesquisa.</li>';
+        return;
+    }
+
+    historicoFiltrado.forEach((item) => {
+        const li = document.createElement('li');
+
+        const tipoSeguro = escaparTexto(item.tipo);
+        const chaveSegura = escaparTexto(item.chave);
+        const operadorSeguro = escaparTexto(item.operador);
+        const solicitanteSeguro = escaparTexto(item.solicitante);
+        const setorSeguro = escaparTexto(item.setor);
+        const dataTextoSeguro = escaparTexto(item.dataTexto);
+
+        const isDevolucao = item.tipo === 'Devolução';
+        const classeBadge = isDevolucao ? 'badge-devolucao' : 'badge-retirada';
+        const textoOperador = isDevolucao ? 'Recebida por' : 'Entregue por';
+
+        li.innerHTML = `
+            <span class="badge-evento ${classeBadge}">
+                ${tipoSeguro}
+            </span>
+
+            <div class="historico-info">
+                <strong>Chave: ${chaveSegura}</strong>
+                <span>${textoOperador}: ${operadorSeguro}</span>
+                <span>Solicitante: ${solicitanteSeguro} | Setor: ${setorSeguro}</span>
+            </div>
+
+            <div class="historico-data">
+                ${dataTextoSeguro}
+            </div>
+        `;
+
+        lista.appendChild(li);
+    });
+}
+
 async function carregarHistorico(silencioso = false) {
     const lista = document.getElementById('listaHistorico');
 
@@ -314,7 +425,7 @@ async function carregarHistorico(silencioso = false) {
 
     try {
         const resp = await fetchAPI('getHistoricoRecentes', {
-            limite: 12
+            limite: LIMITE_HISTORICO
         });
 
         if (resp.erro) {
@@ -327,45 +438,8 @@ async function carregarHistorico(silencioso = false) {
             return;
         }
 
-        lista.innerHTML = '';
-
-        if (resp.historico && resp.historico.length > 0) {
-            resp.historico.forEach((item) => {
-                const li = document.createElement('li');
-
-                const tipoSeguro = escaparTexto(item.tipo);
-                const chaveSegura = escaparTexto(item.chave);
-                const operadorSeguro = escaparTexto(item.operador);
-                const solicitanteSeguro = escaparTexto(item.solicitante);
-                const setorSeguro = escaparTexto(item.setor);
-                const dataTextoSeguro = escaparTexto(item.dataTexto);
-
-                const isDevolucao = item.tipo === 'Devolução';
-                const classeBadge = isDevolucao ? 'badge-devolucao' : 'badge-retirada';
-                const textoOperador = isDevolucao ? 'Recebida por' : 'Entregue por';
-
-                li.innerHTML = `
-                    <span class="badge-evento ${classeBadge}">
-                        ${tipoSeguro}
-                    </span>
-
-                    <div class="historico-info">
-                        <strong>Chave: ${chaveSegura}</strong>
-                        <span>${textoOperador}: ${operadorSeguro}</span>
-                        <span>Solicitante: ${solicitanteSeguro} | Setor: ${setorSeguro}</span>
-                    </div>
-
-                    <div class="historico-data">
-                        ${dataTextoSeguro}
-                    </div>
-                `;
-
-                lista.appendChild(li);
-            });
-        } else {
-            lista.innerHTML =
-                '<li class="item-vazio">Nenhuma movimentação registrada.</li>';
-        }
+        historicoCompleto = resp.historico || [];
+        renderizarHistorico();
     } catch (erro) {
         if (!silencioso) {
             lista.innerHTML =
@@ -534,11 +608,31 @@ window.addEventListener('load', async () => {
     await verificarOperador();
     await atualizarDadosDaTela(false);
 
-    const campoFiltro = document.getElementById('filtroChave');
+    const campoFiltroChave = document.getElementById('filtroChave');
 
-    if (campoFiltro) {
-        campoFiltro.addEventListener('input', () => {
+    if (campoFiltroChave) {
+        campoFiltroChave.addEventListener('input', () => {
             renderizarChavesFiltradas();
+        });
+    }
+
+    const campoFiltroHistorico = document.getElementById('filtroHistorico');
+
+    if (campoFiltroHistorico) {
+        campoFiltroHistorico.addEventListener('input', () => {
+            renderizarHistorico();
+        });
+    }
+
+    const botaoLimparHistorico = document.getElementById('limparFiltroHistorico');
+
+    if (botaoLimparHistorico) {
+        botaoLimparHistorico.addEventListener('click', () => {
+            if (campoFiltroHistorico) {
+                campoFiltroHistorico.value = '';
+                campoFiltroHistorico.focus();
+                renderizarHistorico();
+            }
         });
     }
 
