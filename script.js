@@ -165,7 +165,7 @@ async function carregarPendentes() {
                 li.innerHTML = `
                     <div class="info-chave">
                         <div class="cabecalho-registro">
-                            <span>Operador retirada: ${operadorSeguro}</span>
+                            <span>Chave entregue por: ${operadorSeguro}</span>
                         </div>
 
                         <div class="texto-chave">
