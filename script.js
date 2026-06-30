@@ -3,6 +3,7 @@ const SCRIPT_URL = '/api/controle';
 let totalChaves = 0;
 let emUso = 0;
 let disponiveis = 0;
+let todasChavesDisponiveis = [];
 
 async function fetchAPI(acao, dadosExtras = {}) {
     const body = {
@@ -80,6 +81,60 @@ async function verificarOperador() {
     }
 }
 
+function normalizarTexto(texto) {
+    return String(texto || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function chaveCombinaComFiltro(chave, filtro) {
+    const chaveNormalizada = normalizarTexto(chave);
+    const filtroNormalizado = normalizarTexto(filtro).trim();
+
+    if (!filtroNormalizado) {
+        return true;
+    }
+
+    if (chaveNormalizada.startsWith(filtroNormalizado)) {
+        return true;
+    }
+
+    const partesDaChave = chaveNormalizada.split(/[\s\-_/]+/);
+
+    return partesDaChave.some((parte) =>
+        parte.startsWith(filtroNormalizado)
+    );
+}
+
+function renderizarChavesFiltradas() {
+    const sel = document.getElementById('chaveDisponivel');
+    const campoFiltro = document.getElementById('filtroChave');
+    const filtro = campoFiltro ? campoFiltro.value : '';
+
+    const chavesFiltradas = todasChavesDisponiveis.filter((chave) =>
+        chaveCombinaComFiltro(chave, filtro)
+    );
+
+    sel.innerHTML = '';
+
+    if (todasChavesDisponiveis.length === 0) {
+        sel.innerHTML = '<option value="">Nenhuma chave disponível</option>';
+        return;
+    }
+
+    if (chavesFiltradas.length > 0) {
+        chavesFiltradas.forEach((chave) => {
+            const opt = document.createElement('option');
+            opt.value = chave;
+            opt.textContent = chave;
+            sel.appendChild(opt);
+        });
+    } else {
+        sel.innerHTML = '<option value="">Nenhuma chave encontrada</option>';
+    }
+}
+
 async function carregarChavesDisponiveis() {
     const sel = document.getElementById('chaveDisponivel');
 
@@ -88,32 +143,27 @@ async function carregarChavesDisponiveis() {
     try {
         const resp = await fetchAPI('getChavesDisponiveis');
 
-        sel.innerHTML = '';
-
         if (resp.erro) {
             sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
+            todasChavesDisponiveis = [];
             disponiveis = 0;
             atualizarEstatisticas();
             return;
         }
 
         if (resp.chaves && resp.chaves.length > 0) {
-            resp.chaves.forEach((chave) => {
-                const opt = document.createElement('option');
-                opt.value = chave;
-                opt.textContent = chave;
-                sel.appendChild(opt);
-            });
-
+            todasChavesDisponiveis = resp.chaves;
             disponiveis = resp.chaves.length;
         } else {
-            sel.innerHTML = '<option value="">Nenhuma chave disponível</option>';
+            todasChavesDisponiveis = [];
             disponiveis = 0;
         }
 
+        renderizarChavesFiltradas();
         atualizarEstatisticas();
     } catch (erro) {
         sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
+        todasChavesDisponiveis = [];
         disponiveis = 0;
         atualizarEstatisticas();
     }
@@ -139,7 +189,8 @@ async function carregarPendentes() {
         lista.innerHTML = '';
 
         if (resp.erro) {
-            lista.innerHTML = `<li>Erro ao carregar registros: ${escaparTexto(resp.erro)}</li>`;
+            lista.innerHTML =
+                `<li>Erro ao carregar registros: ${escaparTexto(resp.erro)}</li>`;
             emUso = 0;
             atualizarEstatisticas();
             return;
@@ -271,6 +322,12 @@ async function retirar() {
             document.getElementById('solicitante').value = '';
             document.getElementById('setor').value = '';
 
+            const campoFiltro = document.getElementById('filtroChave');
+
+            if (campoFiltro) {
+                campoFiltro.value = '';
+            }
+
             await carregarChavesDisponiveis();
             await carregarPendentes();
         } else {
@@ -290,7 +347,8 @@ async function retirar() {
 }
 
 async function devolver(chave) {
-    const operadorDevolucao = document.getElementById('nomeOperador').textContent;
+    const operadorDevolucao =
+        document.getElementById('nomeOperador').textContent;
 
     if (
         !operadorDevolucao ||
@@ -345,4 +403,10 @@ window.addEventListener('load', async () => {
     await verificarOperador();
     await carregarChavesDisponiveis();
     await carregarPendentes();
+
+    const campoFiltro = document.getElementById('filtroChave');
+
+    if (campoFiltro) {
+        campoFiltro.addEventListener('input', renderizarChavesFiltradas);
+    }
 });
