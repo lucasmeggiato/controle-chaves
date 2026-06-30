@@ -5,6 +5,9 @@ let emUso = 0;
 let disponiveis = 0;
 let todasChavesDisponiveis = [];
 
+const INTERVALO_ATUALIZACAO_MS = 15000;
+let atualizacaoEmAndamento = false;
+
 async function fetchAPI(acao, dadosExtras = {}) {
     const body = {
         acao,
@@ -24,6 +27,10 @@ async function fetchAPI(acao, dadosExtras = {}) {
 
 function mostrarMensagem(elementoId, texto, erro = false) {
     const elemento = document.getElementById(elementoId);
+
+    if (!elemento) {
+        return;
+    }
 
     elemento.textContent = texto;
 
@@ -107,9 +114,14 @@ function chaveCombinaComFiltro(chave, filtro) {
     );
 }
 
-function renderizarChavesFiltradas() {
+function renderizarChavesFiltradas(chaveSelecionadaAntes = '') {
     const sel = document.getElementById('chaveDisponivel');
     const campoFiltro = document.getElementById('filtroChave');
+
+    if (!sel) {
+        return;
+    }
+
     const filtro = campoFiltro ? campoFiltro.value : '';
 
     const chavesFiltradas = todasChavesDisponiveis.filter((chave) =>
@@ -130,6 +142,14 @@ function renderizarChavesFiltradas() {
             opt.textContent = chave;
             sel.appendChild(opt);
         });
+
+        if (chaveSelecionadaAntes) {
+            const chaveAindaExiste = chavesFiltradas.includes(chaveSelecionadaAntes);
+
+            if (chaveAindaExiste) {
+                sel.value = chaveSelecionadaAntes;
+            }
+        }
     } else {
         sel.innerHTML = '<option value="">Nenhuma chave encontrada</option>';
     }
@@ -138,7 +158,15 @@ function renderizarChavesFiltradas() {
 async function carregarChavesDisponiveis() {
     const sel = document.getElementById('chaveDisponivel');
 
-    sel.innerHTML = '<option>Carregando...</option>';
+    if (!sel) {
+        return;
+    }
+
+    const chaveSelecionadaAntes = sel.value;
+
+    if (todasChavesDisponiveis.length === 0) {
+        sel.innerHTML = '<option>Carregando...</option>';
+    }
 
     try {
         const resp = await fetchAPI('getChavesDisponiveis');
@@ -159,7 +187,7 @@ async function carregarChavesDisponiveis() {
             disponiveis = 0;
         }
 
-        renderizarChavesFiltradas();
+        renderizarChavesFiltradas(chaveSelecionadaAntes);
         atualizarEstatisticas();
     } catch (erro) {
         sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
@@ -180,6 +208,10 @@ function escaparTexto(texto) {
 
 async function carregarPendentes() {
     const lista = document.getElementById('listaPendentes');
+
+    if (!lista) {
+        return;
+    }
 
     lista.innerHTML = '<li>Carregando...</li>';
 
@@ -328,8 +360,7 @@ async function retirar() {
                 campoFiltro.value = '';
             }
 
-            await carregarChavesDisponiveis();
-            await carregarPendentes();
+            await atualizarDadosDaTela();
         } else {
             mostrarMensagem(
                 'msgRetirada',
@@ -381,8 +412,7 @@ async function devolver(chave) {
         if (resp.sucesso) {
             mostrarMensagem('msgDevolucao', '✅ Devolução registrada!');
 
-            await carregarChavesDisponiveis();
-            await carregarPendentes();
+            await atualizarDadosDaTela();
         } else {
             mostrarMensagem(
                 'msgDevolucao',
@@ -399,14 +429,44 @@ async function devolver(chave) {
     }
 }
 
+async function atualizarDadosDaTela() {
+    if (atualizacaoEmAndamento) {
+        return;
+    }
+
+    atualizacaoEmAndamento = true;
+
+    const selectChave = document.getElementById('chaveDisponivel');
+    const chaveSelecionadaAntes = selectChave ? selectChave.value : '';
+
+    try {
+        await carregarChavesDisponiveis();
+
+        if (selectChave && chaveSelecionadaAntes) {
+            renderizarChavesFiltradas(chaveSelecionadaAntes);
+        }
+
+        await carregarPendentes();
+    } catch (erro) {
+        console.error('Erro na atualização automática:', erro);
+    } finally {
+        atualizacaoEmAndamento = false;
+    }
+}
+
 window.addEventListener('load', async () => {
     await verificarOperador();
-    await carregarChavesDisponiveis();
-    await carregarPendentes();
+    await atualizarDadosDaTela();
 
     const campoFiltro = document.getElementById('filtroChave');
 
     if (campoFiltro) {
-        campoFiltro.addEventListener('input', renderizarChavesFiltradas);
+        campoFiltro.addEventListener('input', () => {
+            renderizarChavesFiltradas();
+        });
     }
+
+    setInterval(async () => {
+        await atualizarDadosDaTela();
+    }, INTERVALO_ATUALIZACAO_MS);
 });
