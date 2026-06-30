@@ -72,23 +72,34 @@ function atualizarEstatisticas() {
     document.getElementById('disponiveis').textContent = disponiveis;
 }
 
-async function verificarOperador() {
+async function verificarOperador(silencioso = false) {
     const span = document.getElementById('nomeOperador');
     const statusDiv = document.getElementById('statusOperador');
 
     try {
+        if (!silencioso && span) {
+            span.textContent = 'Verificando...';
+        }
+
         const resp = await fetchAPI('getOperadorAtual');
 
         if (resp.operador) {
             span.textContent = resp.operador;
             statusDiv.className = 'status-sistema ativo';
-        } else {
-            span.textContent = 'Nenhum operador de plantão';
+            return resp.operador;
+        }
+
+        span.textContent = 'Nenhum operador de plantão';
+        statusDiv.className = 'status-sistema inativo';
+        return null;
+    } catch (erro) {
+        if (!silencioso) {
+            span.textContent = 'Erro ao verificar';
             statusDiv.className = 'status-sistema inativo';
         }
-    } catch (erro) {
-        span.textContent = 'Erro ao verificar';
-        statusDiv.className = 'status-sistema inativo';
+
+        console.error('Erro ao verificar operador:', erro);
+        return null;
     }
 }
 
@@ -451,20 +462,15 @@ async function carregarHistorico(silencioso = false) {
 }
 
 async function retirar() {
-    const operador = document.getElementById('nomeOperador').textContent;
+    const operador = await verificarOperador(false);
     const solicitante = document.getElementById('solicitante').value.trim();
     const setor = document.getElementById('setor').value.trim();
     const chave = document.getElementById('chaveDisponivel').value;
 
-    if (
-        !operador ||
-        operador === 'Verificando...' ||
-        operador.includes('Nenhum') ||
-        operador.includes('Erro')
-    ) {
+    if (!operador) {
         mostrarMensagem(
             'msgRetirada',
-            '❌ Operador de plantão não identificado.',
+            '❌ Operador de plantão não identificado. Aguarde alguns segundos e tente novamente.',
             true
         );
         return;
@@ -535,18 +541,12 @@ async function retirar() {
 }
 
 async function devolver(chave) {
-    const operadorDevolucao =
-        document.getElementById('nomeOperador').textContent;
+    const operadorDevolucao = await verificarOperador(false);
 
-    if (
-        !operadorDevolucao ||
-        operadorDevolucao === 'Verificando...' ||
-        operadorDevolucao.includes('Nenhum') ||
-        operadorDevolucao.includes('Erro')
-    ) {
+    if (!operadorDevolucao) {
         mostrarMensagem(
             'msgDevolucao',
-            '❌ Operador de plantão não identificado.',
+            '❌ Operador de plantão não identificado. Aguarde alguns segundos e tente novamente.',
             true
         );
         return;
@@ -594,6 +594,7 @@ async function atualizarDadosDaTela(silencioso = true) {
     atualizacaoEmAndamento = true;
 
     try {
+        await verificarOperador(silencioso);
         await carregarChavesDisponiveis(silencioso);
         await carregarPendentes(silencioso);
         await carregarHistorico(silencioso);
@@ -605,7 +606,6 @@ async function atualizarDadosDaTela(silencioso = true) {
 }
 
 window.addEventListener('load', async () => {
-    await verificarOperador();
     await atualizarDadosDaTela(false);
 
     const campoFiltroChave = document.getElementById('filtroChave');
