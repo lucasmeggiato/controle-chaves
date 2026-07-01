@@ -1,7 +1,37 @@
+function lerCookies(cookieHeader = '') {
+  return cookieHeader.split(';').reduce((cookies, item) => {
+    const partes = item.trim().split('=');
+    const chave = partes.shift();
+
+    if (!chave) {
+      return cookies;
+    }
+
+    cookies[chave] = decodeURIComponent(partes.join('=') || '');
+    return cookies;
+  }, {});
+}
+
+function usuarioAutenticado(req) {
+  const cookies = lerCookies(req.headers.cookie || '');
+  return (
+    process.env.AUTH_COOKIE_SECRET &&
+    cookies.chaves_auth === process.env.AUTH_COOKIE_SECRET
+  );
+}
+
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       erro: 'Método não permitido'
+    });
+  }
+
+  if (!usuarioAutenticado(req)) {
+    return res.status(401).json({
+      erro: 'Não autorizado'
     });
   }
 
@@ -15,7 +45,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const { acao, ...dadosExtras } = req.body;
+    const { acao, ...dadosExtras } = req.body || {};
 
     if (!acao) {
       return res.status(400).json({

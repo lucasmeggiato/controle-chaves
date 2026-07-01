@@ -30,9 +30,16 @@
                     Operador:
                     <span id="nomeOperador">Verificando...</span>
                 </div>
+
+                <div id="versaoBackend" class="versao-backend">
+                    Backend: verificando...
+                </div>
             </div>
 
-            <div class="relogio" id="relogio">00:00:00</div>
+            <div class="header-acoes">
+                <div class="relogio" id="relogio">00:00:00</div>
+                <button type="button" id="btnSair" class="btn-sair">Sair</button>
+            </div>
         </header>
 
         <section class="estatisticas">
@@ -83,7 +90,9 @@
                     <option>Carregando...</option>
                 </select>
 
-                <button type="button" onclick="retirar()">Retirar</button>
+                <button type="button" id="btnRetirar" onclick="retirar()">
+                    Retirar
+                </button>
             </div>
 
             <div id="msgRetirada" class="msg"></div>
@@ -103,7 +112,7 @@
             <div class="historico-topo">
                 <div>
                     <h3>Últimas movimentações</h3>
-                    <p>Retiradas e devoluções recentes</p>
+                    <p>Retiradas e devoluções recentes. A pesquisa consulta também os registros arquivados.</p>
                 </div>
 
                 <span id="contadorHistorico" class="contador-historico">
@@ -115,7 +124,7 @@
                 <input
                     type="text"
                     id="filtroHistorico"
-                    placeholder="Pesquisar histórico por chave, solicitante, setor, operador ou data"
+                    placeholder="Pesquisar por chave, solicitante, setor, operador ou data"
                     autocomplete="off"
                 >
 

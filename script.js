@@ -5,28 +5,40 @@ let emUso = 0;
 let disponiveis = 0;
 
 let todasChavesDisponiveis = [];
+let pendentesAtuais = [];
 let historicoCompleto = [];
 
 const INTERVALO_ATUALIZACAO_MS = 30000;
 const LIMITE_HISTORICO = 80;
 
 let atualizacaoEmAndamento = false;
+let operacaoEmAndamento = false;
+let timeoutBuscaHistorico = null;
 
 async function fetchAPI(acao, dadosExtras = {}) {
-    const body = {
-        acao,
-        ...dadosExtras
-    };
-
     const resp = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({
+            acao,
+            ...dadosExtras
+        })
     });
 
-    return await resp.json();
+    if (resp.status === 401) {
+        window.location.href = '/login.html';
+        throw new Error('Não autorizado');
+    }
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+        throw new Error(data.erro || 'Erro de conexão.');
+    }
+
+    return data;
 }
 
 function mostrarMensagem(elementoId, texto, erro = false) {
@@ -37,12 +49,7 @@ function mostrarMensagem(elementoId, texto, erro = false) {
     }
 
     elemento.textContent = texto;
-
-    if (erro) {
-        elemento.classList.add('erro');
-    } else {
-        elemento.classList.remove('erro');
-    }
+    elemento.classList.toggle('erro', erro);
 
     setTimeout(() => {
         elemento.textContent = '';
@@ -50,19 +57,51 @@ function mostrarMensagem(elementoId, texto, erro = false) {
     }, 5000);
 }
 
+function setOperacaoEmAndamento(valor) {
+    operacaoEmAndamento = valor;
+
+    const btnRetirar = document.getElementById('btnRetirar');
+
+    if (btnRetirar) {
+        btnRetirar.disabled = valor;
+        btnRetirar.textContent = valor ? 'Processando...' : 'Retirar';
+    }
+
+    document.querySelectorAll('.btn-devolver').forEach((btn) => {
+        btn.disabled = valor;
+    });
+}
+
 function atualizarRelogio() {
     const agora = new Date();
 
-    const horas = String(agora.getHours()).padStart(2, '0');
-    const minutos = String(agora.getMinutes()).padStart(2, '0');
-    const segundos = String(agora.getSeconds()).padStart(2, '0');
-
-    document.getElementById('relogio').textContent =
-        `${horas}:${minutos}:${segundos}`;
+    document.getElementById('relogio').textContent = [
+        agora.getHours(),
+        agora.getMinutes(),
+        agora.getSeconds()
+    ].map((n) => String(n).padStart(2, '0')).join(':');
 }
 
 setInterval(atualizarRelogio, 1000);
 atualizarRelogio();
+
+function normalizarTexto(texto) {
+    return String(texto || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function escaparTexto(texto) {
+    return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 function atualizarEstatisticas() {
     totalChaves = emUso + disponiveis;
@@ -72,47 +111,22 @@ function atualizarEstatisticas() {
     document.getElementById('disponiveis').textContent = disponiveis;
 }
 
-async function verificarOperador(silencioso = false) {
+function atualizarOperador(operador) {
     const span = document.getElementById('nomeOperador');
     const statusDiv = document.getElementById('statusOperador');
 
-    try {
-        if (!silencioso && span) {
-            span.textContent = 'Verificando...';
-        }
-
-        const resp = await fetchAPI('getOperadorAtual');
-
-        if (resp.operador) {
-            span.textContent = resp.operador;
-            statusDiv.className = 'status-sistema ativo';
-            return resp.operador;
-        }
-
+    if (operador) {
+        span.textContent = operador;
+        statusDiv.className = 'status-sistema ativo';
+    } else {
         span.textContent = 'Nenhum operador de plantão';
         statusDiv.className = 'status-sistema inativo';
-        return null;
-    } catch (erro) {
-        if (!silencioso) {
-            span.textContent = 'Erro ao verificar';
-            statusDiv.className = 'status-sistema inativo';
-        }
-
-        console.error('Erro ao verificar operador:', erro);
-        return null;
     }
-}
-
-function normalizarTexto(texto) {
-    return String(texto || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
 }
 
 function chaveCombinaComFiltro(chave, filtro) {
     const chaveNormalizada = normalizarTexto(chave);
-    const filtroNormalizado = normalizarTexto(filtro).trim();
+    const filtroNormalizado = normalizarTexto(filtro);
 
     if (!filtroNormalizado) {
         return true;
@@ -122,11 +136,9 @@ function chaveCombinaComFiltro(chave, filtro) {
         return true;
     }
 
-    const partesDaChave = chaveNormalizada.split(/[\s\-_/]+/);
-
-    return partesDaChave.some((parte) =>
-        parte.startsWith(filtroNormalizado)
-    );
+    return chaveNormalizada
+        .split(/[\s\-_/]+/)
+        .some((parte) => parte.startsWith(filtroNormalizado));
 }
 
 function renderizarChavesFiltradas(chaveSelecionadaAntes = '') {
@@ -150,174 +162,88 @@ function renderizarChavesFiltradas(chaveSelecionadaAntes = '') {
         return;
     }
 
-    if (chavesFiltradas.length > 0) {
-        chavesFiltradas.forEach((chave) => {
-            const opt = document.createElement('option');
-            opt.value = chave;
-            opt.textContent = chave;
-            sel.appendChild(opt);
-        });
-
-        if (chaveSelecionadaAntes) {
-            const chaveAindaExiste = chavesFiltradas.includes(chaveSelecionadaAntes);
-
-            if (chaveAindaExiste) {
-                sel.value = chaveSelecionadaAntes;
-            }
-        }
-    } else {
+    if (chavesFiltradas.length === 0) {
         sel.innerHTML = '<option value="">Nenhuma chave encontrada</option>';
-    }
-}
-
-async function carregarChavesDisponiveis(silencioso = false) {
-    const sel = document.getElementById('chaveDisponivel');
-
-    if (!sel) {
         return;
     }
 
-    const chaveSelecionadaAntes = sel.value;
+    chavesFiltradas.forEach((chave) => {
+        const opt = document.createElement('option');
+        opt.value = chave;
+        opt.textContent = chave;
+        sel.appendChild(opt);
+    });
 
-    if (!silencioso) {
-        sel.innerHTML = '<option>Carregando...</option>';
-    }
-
-    try {
-        const resp = await fetchAPI('getChavesDisponiveis');
-
-        if (resp.erro) {
-            if (!silencioso) {
-                sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
-            }
-
-            console.error(resp.erro);
-            return;
-        }
-
-        if (resp.chaves && resp.chaves.length > 0) {
-            todasChavesDisponiveis = resp.chaves;
-            disponiveis = resp.chaves.length;
-        } else {
-            todasChavesDisponiveis = [];
-            disponiveis = 0;
-        }
-
-        renderizarChavesFiltradas(chaveSelecionadaAntes);
-        atualizarEstatisticas();
-    } catch (erro) {
-        if (!silencioso) {
-            sel.innerHTML = '<option value="">Erro ao carregar chaves</option>';
-        }
-
-        console.error('Erro ao carregar chaves:', erro);
+    if (chaveSelecionadaAntes && chavesFiltradas.includes(chaveSelecionadaAntes)) {
+        sel.value = chaveSelecionadaAntes;
     }
 }
 
-function escaparTexto(texto) {
-    return String(texto || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-async function carregarPendentes(silencioso = false) {
+function renderizarPendentes() {
     const lista = document.getElementById('listaPendentes');
 
     if (!lista) {
         return;
     }
 
-    if (!silencioso) {
-        lista.innerHTML = '<li>Carregando...</li>';
+    lista.innerHTML = '';
+
+    if (!pendentesAtuais.length) {
+        lista.innerHTML = '<li>Nenhuma chave em uso.</li>';
+        return;
     }
 
-    try {
-        const resp = await fetchAPI('getPendentes');
+    pendentesAtuais.forEach((p) => {
+        const li = document.createElement('li');
 
-        if (resp.erro) {
-            if (!silencioso) {
-                lista.innerHTML =
-                    `<li>Erro ao carregar registros: ${escaparTexto(resp.erro)}</li>`;
-            }
+        const chaveSegura = escaparTexto(p.chave);
+        const operadorSeguro = escaparTexto(p.operador);
+        const solicitanteSeguro = escaparTexto(p.solicitante);
+        const setorSeguro = escaparTexto(p.setor);
 
-            console.error(resp.erro);
-            return;
+        let saidaFormatada = '';
+
+        try {
+            saidaFormatada = new Date(p.saida).toLocaleString('pt-BR');
+        } catch (erro) {
+            saidaFormatada = p.saida;
         }
 
-        lista.innerHTML = '';
+        li.innerHTML = `
+            <div class="info-chave">
+                <div class="cabecalho-registro">
+                    <span>Chave entregue por: ${operadorSeguro}</span>
+                </div>
 
-        if (resp.pendentes && resp.pendentes.length > 0) {
-            resp.pendentes.forEach((p) => {
-                const li = document.createElement('li');
+                <div class="texto-chave">
+                    Chave: ${chaveSegura}
+                </div>
 
-                const chaveSegura = escaparTexto(p.chave);
-                const operadorSeguro = escaparTexto(p.operador);
-                const solicitanteSeguro = escaparTexto(p.solicitante);
-                const setorSeguro = escaparTexto(p.setor);
+                <div class="cabecalho-registro">
+                    <span>Solicitante: ${solicitanteSeguro}</span>
+                    <span>Setor: ${setorSeguro}</span>
+                </div>
 
-                let saidaFormatada = '';
+                <div class="cabecalho-registro">
+                    <span>Saída: ${escaparTexto(saidaFormatada)}</span>
+                </div>
+            </div>
 
-                try {
-                    saidaFormatada = new Date(p.saida).toLocaleString('pt-BR');
-                } catch (erro) {
-                    saidaFormatada = p.saida;
-                }
+            <div class="acoes">
+                <button class="btn-devolver">Devolver</button>
+            </div>
+        `;
 
-                li.innerHTML = `
-                    <div class="info-chave">
-                        <div class="cabecalho-registro">
-                            <span>Chave entregue por: ${operadorSeguro}</span>
-                        </div>
+        li.querySelector('.btn-devolver').addEventListener('click', () => {
+            devolver(p.chave);
+        });
 
-                        <div class="texto-chave">
-                            Chave: ${chaveSegura}
-                        </div>
-
-                        <div class="cabecalho-registro">
-                            <span>Solicitante: ${solicitanteSeguro}</span>
-                            <span>Setor: ${setorSeguro}</span>
-                        </div>
-
-                        <div class="cabecalho-registro">
-                            <span>Saída: ${escaparTexto(saidaFormatada)}</span>
-                        </div>
-                    </div>
-
-                    <div class="acoes">
-                        <button class="btn-devolver">Devolver</button>
-                    </div>
-                `;
-
-                const botaoDevolver = li.querySelector('.btn-devolver');
-
-                botaoDevolver.addEventListener('click', () => {
-                    devolver(p.chave);
-                });
-
-                lista.appendChild(li);
-            });
-
-            emUso = resp.pendentes.length;
-        } else {
-            lista.innerHTML = '<li>Nenhuma chave em uso.</li>';
-            emUso = 0;
-        }
-
-        atualizarEstatisticas();
-    } catch (erro) {
-        if (!silencioso) {
-            lista.innerHTML = '<li>Erro ao carregar chaves em uso.</li>';
-        }
-
-        console.error('Erro ao carregar pendentes:', erro);
-    }
+        lista.appendChild(li);
+    });
 }
 
 function historicoCombinaComFiltro(item, filtro) {
-    const filtroNormalizado = normalizarTexto(filtro).trim();
+    const filtroNormalizado = normalizarTexto(filtro);
 
     if (!filtroNormalizado) {
         return true;
@@ -344,16 +270,11 @@ function atualizarContadorHistorico(totalExibido, totalGeral) {
 
     if (totalGeral === 0) {
         contador.textContent = '0 registros';
-        return;
+    } else if (totalExibido === totalGeral) {
+        contador.textContent = totalGeral === 1 ? '1 registro' : `${totalGeral} registros`;
+    } else {
+        contador.textContent = `${totalExibido} de ${totalGeral}`;
     }
-
-    if (totalExibido === totalGeral) {
-        contador.textContent =
-            totalGeral === 1 ? '1 registro' : `${totalGeral} registros`;
-        return;
-    }
-
-    contador.textContent = `${totalExibido} de ${totalGeral}`;
 }
 
 function renderizarHistorico() {
@@ -372,32 +293,20 @@ function renderizarHistorico() {
 
     lista.innerHTML = '';
 
-    atualizarContadorHistorico(
-        historicoFiltrado.length,
-        historicoCompleto.length
-    );
+    atualizarContadorHistorico(historicoFiltrado.length, historicoCompleto.length);
 
-    if (historicoCompleto.length === 0) {
-        lista.innerHTML =
-            '<li class="item-vazio">Nenhuma movimentação registrada.</li>';
+    if (!historicoCompleto.length) {
+        lista.innerHTML = '<li class="item-vazio">Nenhuma movimentação registrada.</li>';
         return;
     }
 
-    if (historicoFiltrado.length === 0) {
-        lista.innerHTML =
-            '<li class="item-vazio">Nenhum resultado encontrado para a pesquisa.</li>';
+    if (!historicoFiltrado.length) {
+        lista.innerHTML = '<li class="item-vazio">Nenhum resultado encontrado.</li>';
         return;
     }
 
     historicoFiltrado.forEach((item) => {
         const li = document.createElement('li');
-
-        const tipoSeguro = escaparTexto(item.tipo);
-        const chaveSegura = escaparTexto(item.chave);
-        const operadorSeguro = escaparTexto(item.operador);
-        const solicitanteSeguro = escaparTexto(item.solicitante);
-        const setorSeguro = escaparTexto(item.setor);
-        const dataTextoSeguro = escaparTexto(item.dataTexto);
 
         const isDevolucao = item.tipo === 'Devolução';
         const classeBadge = isDevolucao ? 'badge-devolucao' : 'badge-retirada';
@@ -405,17 +314,17 @@ function renderizarHistorico() {
 
         li.innerHTML = `
             <span class="badge-evento ${classeBadge}">
-                ${tipoSeguro}
+                ${escaparTexto(item.tipo)}
             </span>
 
             <div class="historico-info">
-                <strong>Chave: ${chaveSegura}</strong>
-                <span>${textoOperador}: ${operadorSeguro}</span>
-                <span>Solicitante: ${solicitanteSeguro} | Setor: ${setorSeguro}</span>
+                <strong>Chave: ${escaparTexto(item.chave)}</strong>
+                <span>${textoOperador}: ${escaparTexto(item.operador)}</span>
+                <span>Solicitante: ${escaparTexto(item.solicitante)} | Setor: ${escaparTexto(item.setor)}</span>
             </div>
 
             <div class="historico-data">
-                ${dataTextoSeguro}
+                ${escaparTexto(item.dataTexto)}
             </div>
         `;
 
@@ -423,87 +332,154 @@ function renderizarHistorico() {
     });
 }
 
-async function carregarHistorico(silencioso = false) {
-    const lista = document.getElementById('listaHistorico');
-
-    if (!lista) {
+async function carregarDashboard(silencioso = true) {
+    if (atualizacaoEmAndamento) {
         return;
     }
 
-    if (!silencioso) {
-        lista.innerHTML = '<li class="item-vazio">Carregando histórico...</li>';
+    atualizacaoEmAndamento = true;
+
+    const selectChave = document.getElementById('chaveDisponivel');
+    const chaveSelecionadaAntes = selectChave ? selectChave.value : '';
+    const filtroHistorico = document.getElementById('filtroHistorico')?.value || '';
+
+    try {
+        if (!silencioso) {
+            if (selectChave) {
+                selectChave.innerHTML = '<option>Carregando...</option>';
+            }
+
+            document.getElementById('listaPendentes').innerHTML = '<li>Carregando...</li>';
+            document.getElementById('listaHistorico').innerHTML = '<li class="item-vazio">Carregando histórico...</li>';
+        }
+
+        const resp = await fetchAPI('getDashboard', {
+            limiteHistorico: LIMITE_HISTORICO
+        });
+
+        atualizarOperador(resp.operador);
+
+        const versao = document.getElementById('versaoBackend');
+
+        if (versao) {
+            versao.textContent = `Backend: ${resp.versao || 'sem versão'}`;
+        }
+
+        todasChavesDisponiveis = resp.chaves || [];
+        pendentesAtuais = resp.pendentes || [];
+
+        disponiveis = todasChavesDisponiveis.length;
+        emUso = pendentesAtuais.length;
+
+        renderizarChavesFiltradas(chaveSelecionadaAntes);
+        renderizarPendentes();
+        atualizarEstatisticas();
+
+        if (!filtroHistorico) {
+            historicoCompleto = resp.historico || [];
+            renderizarHistorico();
+        }
+    } catch (erro) {
+        console.error('Erro ao carregar dashboard:', erro);
+
+        if (!silencioso) {
+            mostrarMensagem(
+                'msgRetirada',
+                '❌ Erro de conexão. Verifique a internet e tente novamente.',
+                true
+            );
+        }
+    } finally {
+        atualizacaoEmAndamento = false;
+    }
+}
+
+async function buscarHistoricoBackend() {
+    const campo = document.getElementById('filtroHistorico');
+    const termo = campo ? campo.value.trim() : '';
+
+    if (!termo) {
+        await carregarDashboard(true);
+        return;
+    }
+
+    const lista = document.getElementById('listaHistorico');
+
+    if (lista) {
+        lista.innerHTML = '<li class="item-vazio">Pesquisando histórico completo...</li>';
     }
 
     try {
-        const resp = await fetchAPI('getHistoricoRecentes', {
+        const resp = await fetchAPI('buscarHistorico', {
+            termo,
             limite: LIMITE_HISTORICO
         });
-
-        if (resp.erro) {
-            if (!silencioso) {
-                lista.innerHTML =
-                    `<li class="item-vazio">Erro ao carregar histórico: ${escaparTexto(resp.erro)}</li>`;
-            }
-
-            console.error(resp.erro);
-            return;
-        }
 
         historicoCompleto = resp.historico || [];
         renderizarHistorico();
     } catch (erro) {
-        if (!silencioso) {
-            lista.innerHTML =
-                '<li class="item-vazio">Erro ao carregar histórico.</li>';
-        }
+        console.error('Erro ao buscar histórico:', erro);
 
-        console.error('Erro ao carregar histórico:', erro);
+        if (lista) {
+            lista.innerHTML = '<li class="item-vazio">Erro de conexão ao pesquisar histórico.</li>';
+        }
     }
 }
 
+function agendarBuscaHistorico() {
+    clearTimeout(timeoutBuscaHistorico);
+
+    timeoutBuscaHistorico = setTimeout(() => {
+        buscarHistoricoBackend();
+    }, 650);
+}
+
+async function obterOperadorAtualRapido() {
+    const resp = await fetchAPI('getDashboard', {
+        limiteHistorico: 0
+    });
+
+    atualizarOperador(resp.operador);
+    return resp.operador;
+}
+
 async function retirar() {
-    const operador = await verificarOperador(false);
-    const solicitante = document.getElementById('solicitante').value.trim();
-    const setor = document.getElementById('setor').value.trim();
-    const chave = document.getElementById('chaveDisponivel').value;
-
-    if (!operador) {
-        mostrarMensagem(
-            'msgRetirada',
-            '❌ Operador de plantão não identificado. Aguarde alguns segundos e tente novamente.',
-            true
-        );
+    if (operacaoEmAndamento) {
         return;
     }
 
-    if (!solicitante) {
-        mostrarMensagem(
-            'msgRetirada',
-            '❌ Preencha o nome de quem está retirando a chave.',
-            true
-        );
-        return;
-    }
-
-    if (!setor) {
-        mostrarMensagem(
-            'msgRetirada',
-            '❌ Preencha o setor do solicitante.',
-            true
-        );
-        return;
-    }
-
-    if (!chave) {
-        mostrarMensagem(
-            'msgRetirada',
-            '❌ Selecione uma chave disponível.',
-            true
-        );
-        return;
-    }
+    setOperacaoEmAndamento(true);
 
     try {
+        const operador = await obterOperadorAtualRapido();
+        const solicitante = document.getElementById('solicitante').value.trim();
+        const setor = document.getElementById('setor').value.trim();
+        const chave = document.getElementById('chaveDisponivel').value;
+
+        if (!operador) {
+            mostrarMensagem(
+                'msgRetirada',
+                '❌ Operador de plantão não identificado. Aguarde alguns segundos e tente novamente.',
+                true
+            );
+            return;
+        }
+
+        if (!solicitante) {
+            mostrarMensagem('msgRetirada', '❌ Preencha o nome de quem está retirando a chave.', true);
+            return;
+        }
+
+        if (!setor) {
+            mostrarMensagem('msgRetirada', '❌ Preencha o setor do solicitante.', true);
+            return;
+        }
+
+        if (!chave) {
+            mostrarMensagem('msgRetirada', '❌ Selecione uma chave disponível.', true);
+            return;
+        }
+
         const resp = await fetchAPI('retirar', {
             operador,
             solicitante,
@@ -523,44 +499,48 @@ async function retirar() {
                 campoFiltro.value = '';
             }
 
-            await atualizarDadosDaTela(true);
+            await carregarDashboard(true);
         } else {
-            mostrarMensagem(
-                'msgRetirada',
-                '❌ Erro: ' + resp.erro,
-                true
-            );
+            mostrarMensagem('msgRetirada', '❌ Erro: ' + resp.erro, true);
         }
     } catch (erro) {
         mostrarMensagem(
             'msgRetirada',
-            '❌ Erro ao registrar retirada.',
+            '❌ Erro de conexão. Verifique a internet e tente novamente.',
             true
         );
+    } finally {
+        setOperacaoEmAndamento(false);
     }
 }
 
 async function devolver(chave) {
-    const operadorDevolucao = await verificarOperador(false);
-
-    if (!operadorDevolucao) {
-        mostrarMensagem(
-            'msgDevolucao',
-            '❌ Operador de plantão não identificado. Aguarde alguns segundos e tente novamente.',
-            true
-        );
+    if (operacaoEmAndamento) {
         return;
     }
 
-    const confirmar = confirm(
-        `Confirma a devolução da chave "${chave}" por ${operadorDevolucao}?`
-    );
-
-    if (!confirmar) {
-        return;
-    }
+    setOperacaoEmAndamento(true);
 
     try {
+        const operadorDevolucao = await obterOperadorAtualRapido();
+
+        if (!operadorDevolucao) {
+            mostrarMensagem(
+                'msgDevolucao',
+                '❌ Operador de plantão não identificado. Aguarde alguns segundos e tente novamente.',
+                true
+            );
+            return;
+        }
+
+        const confirmar = confirm(
+            `Confirma a devolução da chave "${chave}" por ${operadorDevolucao}?`
+        );
+
+        if (!confirmar) {
+            return;
+        }
+
         const resp = await fetchAPI('devolver', {
             chave,
             operadorDevolucao
@@ -568,45 +548,33 @@ async function devolver(chave) {
 
         if (resp.sucesso) {
             mostrarMensagem('msgDevolucao', '✅ Devolução registrada!');
-
-            await atualizarDadosDaTela(true);
+            await carregarDashboard(true);
         } else {
-            mostrarMensagem(
-                'msgDevolucao',
-                '❌ Erro: ' + resp.erro,
-                true
-            );
+            mostrarMensagem('msgDevolucao', '❌ Erro: ' + resp.erro, true);
         }
     } catch (erro) {
         mostrarMensagem(
             'msgDevolucao',
-            '❌ Erro ao registrar devolução.',
+            '❌ Erro de conexão. Verifique a internet e tente novamente.',
             true
         );
+    } finally {
+        setOperacaoEmAndamento(false);
     }
 }
 
-async function atualizarDadosDaTela(silencioso = true) {
-    if (atualizacaoEmAndamento) {
-        return;
-    }
-
-    atualizacaoEmAndamento = true;
-
+async function sair() {
     try {
-        await verificarOperador(silencioso);
-        await carregarChavesDisponiveis(silencioso);
-        await carregarPendentes(silencioso);
-        await carregarHistorico(silencioso);
-    } catch (erro) {
-        console.error('Erro na atualização automática:', erro);
+        await fetch('/api/logout', {
+            method: 'POST'
+        });
     } finally {
-        atualizacaoEmAndamento = false;
+        window.location.href = '/login.html';
     }
 }
 
 window.addEventListener('load', async () => {
-    await atualizarDadosDaTela(false);
+    await carregarDashboard(false);
 
     const campoFiltroChave = document.getElementById('filtroChave');
 
@@ -619,24 +587,29 @@ window.addEventListener('load', async () => {
     const campoFiltroHistorico = document.getElementById('filtroHistorico');
 
     if (campoFiltroHistorico) {
-        campoFiltroHistorico.addEventListener('input', () => {
-            renderizarHistorico();
-        });
+        campoFiltroHistorico.addEventListener('input', agendarBuscaHistorico);
     }
 
     const botaoLimparHistorico = document.getElementById('limparFiltroHistorico');
 
     if (botaoLimparHistorico) {
-        botaoLimparHistorico.addEventListener('click', () => {
+        botaoLimparHistorico.addEventListener('click', async () => {
             if (campoFiltroHistorico) {
                 campoFiltroHistorico.value = '';
                 campoFiltroHistorico.focus();
-                renderizarHistorico();
             }
+
+            await carregarDashboard(true);
         });
     }
 
+    const btnSair = document.getElementById('btnSair');
+
+    if (btnSair) {
+        btnSair.addEventListener('click', sair);
+    }
+
     setInterval(async () => {
-        await atualizarDadosDaTela(true);
+        await carregarDashboard(true);
     }, INTERVALO_ATUALIZACAO_MS);
 });
