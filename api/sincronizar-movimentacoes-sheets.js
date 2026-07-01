@@ -50,18 +50,21 @@ async function chamarSupabase(config, caminho, opcoes = {}) {
   });
 
   const texto = await resposta.text();
+
   let dados = null;
 
   if (texto) {
     try {
       dados = JSON.parse(texto);
     } catch (erro) {
-      dados = null;
+      dados = texto;
     }
   }
 
   if (!resposta.ok) {
-    throw new Error(`Supabase respondeu HTTP ${resposta.status}.`);
+    throw new Error(
+      `Supabase respondeu HTTP ${resposta.status}: ${texto}`
+    );
   }
 
   return dados;
@@ -92,6 +95,7 @@ async function buscarMovimentacoesPendentes(config) {
   ].join('');
 
   const movimentacoes = await chamarSupabase(config, caminho);
+
   return Array.isArray(movimentacoes) ? movimentacoes : [];
 }
 
@@ -135,26 +139,13 @@ async function enviarParaAppsScript(config, movimentacoes) {
   return dados;
 }
 
-  if (!resposta.ok) {
-    throw new Error(`Apps Script respondeu HTTP ${resposta.status}.`);
-  }
-
-  const texto = await resposta.text();
-  let dados;
-
-  try {
-    dados = texto ? JSON.parse(texto) : null;
-  } catch (erro) {
-    throw new Error('Apps Script retornou uma resposta inválida.');
-  }
-
-  if (!dados || dados.sucesso !== true) {
-    throw new Error('Apps Script não confirmou a sincronização.');
-  }
-}
-
 async function marcarComoSincronizadas(config, movimentacoes) {
   const ids = movimentacoes.map((movimentacao) => movimentacao.id);
+
+  if (ids.length === 0) {
+    return;
+  }
+
   const filtroIds = ids
     .map((id) => encodeURIComponent(String(id)))
     .join(',');
@@ -197,7 +188,7 @@ async function registrarErro(config, erro, movimentacoes = []) {
       }
     });
   } catch (erroLog) {
-    // A falha do log não deve substituir o erro original da sincronização.
+    // A falha do log não deve substituir o erro original.
   }
 }
 
@@ -232,12 +223,14 @@ export default async function handler(req, res) {
       });
     }
 
-    await enviarParaAppsScript(config, movimentacoes);
+    const respostaAppsScript = await enviarParaAppsScript(config, movimentacoes);
+
     await marcarComoSincronizadas(config, movimentacoes);
 
     return res.status(200).json({
       sucesso: true,
       sincronizadas: movimentacoes.length,
+      respostaAppsScript,
       haMaisPendentes: movimentacoes.length === LIMITE_POR_EXECUCAO
     });
   } catch (erro) {
@@ -246,9 +239,9 @@ export default async function handler(req, res) {
     }
 
     return res.status(500).json({
-  erro: 'Erro ao sincronizar movimentações com o Google Sheets.',
-  detalhe: String(erro && erro.message ? erro.message : erro),
-  mantidasComoPendentes: movimentacoes.length
-});
+      erro: 'Erro ao sincronizar movimentações com o Google Sheets.',
+      detalhe: String(erro && erro.message ? erro.message : erro),
+      mantidasComoPendentes: movimentacoes.length
+    });
   }
 }
