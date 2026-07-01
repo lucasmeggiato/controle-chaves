@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Entrar – Controle de Chaves</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto+Mono:wght@400;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <main class="login-card">
+        <h1>🔐 Controle de Chaves</h1>
+
+        <p>
+            Digite a senha de acesso para entrar no sistema da Central de Segurança.
+        </p>
+
+        <form id="formLogin">
+            <input
+                type="password"
+                id="senha"
+                placeholder="Senha de acesso"
+                autocomplete="current-password"
+                required
+            >
+
+            <button type="submit" id="btnEntrar">
+                Entrar
+            </button>
+
+            <div id="erroLogin" class="erro"></div>
+        </form>
+    </main>
+
+    <script>
+        const form = document.getElementById('formLogin');
+        const senha = document.getElementById('senha');
+        const erroLogin = document.getElementById('erroLogin');
+        const btnEntrar = document.getElementById('btnEntrar');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            erroLogin.textContent = '';
+            btnEntrar.disabled = true;
+            btnEntrar.textContent = 'Entrando...';
+
+            try {
+                const resp = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        senha: senha.value
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok || !data.sucesso) {
+                    erroLogin.textContent = data.erro || 'Senha inválida.';
+                    return;
+                }
+
+                window.location.href = '/';
+            } catch (erro) {
+                erroLogin.textContent =
+                    'Erro de conexão. Verifique a internet e tente novamente.';
+            } finally {
+                btnEntrar.disabled = false;
+                btnEntrar.textContent = 'Entrar';
+            }
+        });
+    </script>
+</body>
+</html>
