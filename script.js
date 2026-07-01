@@ -1,4 +1,4 @@
-const SCRIPT_URL = '/api/controle';
+const SCRIPT_URL = '/api/controle-supabase';
 
 let totalChaves = 0;
 let emUso = 0;
