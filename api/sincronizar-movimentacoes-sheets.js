@@ -132,6 +132,49 @@ async function buscarMovimentacoesPendentes(config) {
   return Array.isArray(movimentacoes) ? movimentacoes : [];
 }
 
+async function reservarMovimentacoes(config, movimentacoes) {
+  const ids = movimentacoes.map((movimentacao) => movimentacao.id);
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const filtroIds = ids
+    .map((id) => encodeURIComponent(String(id)))
+    .join(',');
+
+  const campos = [
+    'id',
+    'chave_id',
+    'chave_identificacao',
+    'operador_retirada',
+    'solicitante',
+    'setor',
+    'data_saida',
+    'data_devolucao',
+    'status',
+    'operador_devolucao',
+    'atualizado_em',
+    'sheet_sync_status'
+  ].join(',');
+
+  const reservadas = await chamarSupabase(
+    config,
+    `movimentacoes?id=in.(${filtroIds})&sheet_sync_status=eq.pendente&select=${campos}`,
+    {
+      method: 'PATCH',
+      headers: {
+        Prefer: 'return=representation'
+      },
+      body: {
+        sheet_sync_status: 'sincronizando'
+      }
+    }
+  );
+
+  return Array.isArray(reservadas) ? reservadas : [];
+}
+
 async function enviarParaAppsScript(config, movimentacoes) {
   const resposta = await fetch(config.APPS_SCRIPT_SYNC_URL, {
     method: 'POST',
@@ -172,7 +215,7 @@ async function enviarParaAppsScript(config, movimentacoes) {
   return dados;
 }
 
-async function marcarComoSincronizadas(config, movimentacoes) {
+async function alterarStatusSincronizacao(config, movimentacoes, status) {
   const ids = movimentacoes.map((movimentacao) => movimentacao.id);
 
   if (ids.length === 0) {
@@ -192,7 +235,7 @@ async function marcarComoSincronizadas(config, movimentacoes) {
         Prefer: 'return=minimal'
       },
       body: {
-        sheet_sync_status: 'sincronizado'
+        sheet_sync_status: status
       }
     }
   );
@@ -233,7 +276,8 @@ export default async function handler(req, res) {
   }
 
   let config;
-  let movimentacoes = [];
+  let movimentacoesPendentes = [];
+  let movimentacoesReservadas = [];
 
   try {
     config = obterConfiguracao();
@@ -244,9 +288,9 @@ export default async function handler(req, res) {
       });
     }
 
-    movimentacoes = await buscarMovimentacoesPendentes(config);
+    movimentacoesPendentes = await buscarMovimentacoesPendentes(config);
 
-    if (movimentacoes.length === 0) {
+    if (movimentacoesPendentes.length === 0) {
       return res.status(200).json({
         sucesso: true,
         sincronizadas: 0,
@@ -254,25 +298,53 @@ export default async function handler(req, res) {
       });
     }
 
-    const respostaAppsScript = await enviarParaAppsScript(config, movimentacoes);
+    movimentacoesReservadas = await reservarMovimentacoes(
+      config,
+      movimentacoesPendentes
+    );
 
-    await marcarComoSincronizadas(config, movimentacoes);
+    if (movimentacoesReservadas.length === 0) {
+      return res.status(200).json({
+        sucesso: true,
+        sincronizadas: 0,
+        mensagem: 'As movimentações pendentes já foram reservadas por outra sincronização.'
+      });
+    }
+
+    const respostaAppsScript = await enviarParaAppsScript(
+      config,
+      movimentacoesReservadas
+    );
+
+    await alterarStatusSincronizacao(
+      config,
+      movimentacoesReservadas,
+      'sincronizado'
+    );
 
     return res.status(200).json({
       sucesso: true,
-      sincronizadas: movimentacoes.length,
+      sincronizadas: movimentacoesReservadas.length,
       respostaAppsScript,
-      haMaisPendentes: movimentacoes.length === LIMITE_POR_EXECUCAO
+      haMaisPendentes: movimentacoesReservadas.length === LIMITE_POR_EXECUCAO
     });
   } catch (erro) {
+    if (config && movimentacoesReservadas.length > 0) {
+      await alterarStatusSincronizacao(
+        config,
+        movimentacoesReservadas,
+        'pendente'
+      );
+    }
+
     if (config) {
-      await registrarErro(config, erro, movimentacoes);
+      await registrarErro(config, erro, movimentacoesReservadas);
     }
 
     return res.status(500).json({
       erro: 'Erro ao sincronizar movimentações com o Google Sheets.',
       detalhe: String(erro && erro.message ? erro.message : erro),
-      mantidasComoPendentes: movimentacoes.length
+      mantidasComoPendentes: movimentacoesReservadas.length
     });
   }
 }
