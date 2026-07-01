@@ -19,29 +19,66 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-    <main class="login-card">
-        <h1>🔐 Controle de Chaves</h1>
+<body class="login-page">
+    <main class="login-shell">
 
-        <p>
-            Digite a senha de acesso para entrar no sistema da Central de Segurança.
-        </p>
+        <section class="login-brand">
+            <div class="login-logo">
+                🔑
+            </div>
 
-        <form id="formLogin">
-            <input
-                type="password"
-                id="senha"
-                placeholder="Senha de acesso"
-                autocomplete="current-password"
-                required
-            >
+            <div>
+                <span class="login-label">Central de Segurança</span>
+                <h1>Controle de Chaves</h1>
+                <p>
+                    Acesso restrito aos operadores autorizados.
+                </p>
+            </div>
+        </section>
 
-            <button type="submit" id="btnEntrar">
-                Entrar
-            </button>
+        <section class="login-card">
+            <div class="login-card-topo">
+                <h2>Entrar no sistema</h2>
+                <p>Informe a senha de acesso para continuar.</p>
+            </div>
 
-            <div id="erroLogin" class="erro"></div>
-        </form>
+            <form id="formLogin">
+                <label for="senha" class="login-campo-label">
+                    Senha de acesso
+                </label>
+
+                <div class="login-input-wrap">
+                    <input
+                        type="password"
+                        id="senha"
+                        placeholder="Digite sua senha"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        id="btnVerSenha"
+                        class="btn-ver-senha"
+                        aria-label="Mostrar ou ocultar senha"
+                    >
+                        👁
+                    </button>
+                </div>
+
+                <button type="submit" id="btnEntrar" class="btn-login">
+                    Entrar
+                </button>
+
+                <div id="erroLogin" class="erro-login"></div>
+            </form>
+
+            <div class="login-rodape">
+                <span class="ponto-status"></span>
+                Sistema protegido por autenticação
+            </div>
+        </section>
+
     </main>
 
     <script>
@@ -49,6 +86,14 @@
         const senha = document.getElementById('senha');
         const erroLogin = document.getElementById('erroLogin');
         const btnEntrar = document.getElementById('btnEntrar');
+        const btnVerSenha = document.getElementById('btnVerSenha');
+
+        btnVerSenha.addEventListener('click', () => {
+            const senhaEstaOculta = senha.type === 'password';
+
+            senha.type = senhaEstaOculta ? 'text' : 'password';
+            btnVerSenha.textContent = senhaEstaOculta ? '🙈' : '👁';
+        });
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -72,6 +117,7 @@
 
                 if (!resp.ok || !data.sucesso) {
                     erroLogin.textContent = data.erro || 'Senha inválida.';
+                    senha.focus();
                     return;
                 }
 
