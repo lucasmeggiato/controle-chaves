@@ -1,5 +1,28 @@
 const LIMITE_POR_EXECUCAO = 100;
 
+function lerCookies(cookieHeader = '') {
+  return cookieHeader.split(';').reduce((cookies, item) => {
+    const partes = item.trim().split('=');
+    const chave = partes.shift();
+
+    if (!chave) {
+      return cookies;
+    }
+
+    cookies[chave] = decodeURIComponent(partes.join('=') || '');
+    return cookies;
+  }, {});
+}
+
+function usuarioAutenticado(req) {
+  const cookies = lerCookies(req.headers.cookie || '');
+
+  return (
+    process.env.AUTH_COOKIE_SECRET &&
+    cookies.chaves_auth === process.env.AUTH_COOKIE_SECRET
+  );
+}
+
 function obterConfiguracao() {
   const APPS_SCRIPT_SYNC_URL = process.env.APPS_SCRIPT_SYNC_URL;
   const SYNC_TOKEN = process.env.SYNC_TOKEN;
@@ -35,6 +58,16 @@ function obterTokenRecebido(req) {
     (req.body && req.body.token) ||
     ''
   );
+}
+
+function requisicaoAutorizada(req, config) {
+  const tokenRecebido = obterTokenRecebido(req);
+
+  if (tokenRecebido && tokenRecebido === config.SYNC_TOKEN) {
+    return true;
+  }
+
+  return usuarioAutenticado(req);
 }
 
 async function chamarSupabase(config, caminho, opcoes = {}) {
@@ -187,9 +220,7 @@ async function registrarErro(config, erro, movimentacoes = []) {
         }
       }
     });
-  } catch (erroLog) {
-    // A falha do log não deve substituir o erro original.
-  }
+  } catch (erroLog) {}
 }
 
 export default async function handler(req, res) {
@@ -207,7 +238,7 @@ export default async function handler(req, res) {
   try {
     config = obterConfiguracao();
 
-    if (obterTokenRecebido(req) !== config.SYNC_TOKEN) {
+    if (!requisicaoAutorizada(req, config)) {
       return res.status(401).json({
         erro: 'Acesso negado.'
       });

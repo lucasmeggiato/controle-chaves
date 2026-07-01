@@ -28,7 +28,7 @@ async function fetchAPI(acao, dadosExtras = {}) {
     });
 
     if (resp.status === 401) {
-        window.location.href = '/login.html';
+        window.location.replace('/login.html');
         throw new Error('Não autorizado');
     }
 
@@ -39,6 +39,30 @@ async function fetchAPI(acao, dadosExtras = {}) {
     }
 
     return data;
+}
+
+async function sincronizarMovimentacoesSheetsSilencioso() {
+    try {
+        const resp = await fetch('/api/sincronizar-movimentacoes-sheets', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
+
+        if (resp.status === 401) {
+            return;
+        }
+
+        const data = await resp.json().catch(() => null);
+
+        if (!resp.ok || !data || !data.sucesso) {
+            console.warn('Sincronização com Google Sheets ficou pendente.');
+        }
+    } catch (erro) {
+        console.warn('Não foi possível sincronizar com Google Sheets agora.');
+    }
 }
 
 function mostrarMensagem(elementoId, texto, erro = false) {
@@ -69,14 +93,19 @@ function setOperacaoEmAndamento(valor) {
 
     document.querySelectorAll('.btn-devolver').forEach((btn) => {
         btn.disabled = valor;
-        btn.textContent = valor ? 'Aguarde...' : 'Devolver';
     });
 }
 
 function atualizarRelogio() {
     const agora = new Date();
 
-    document.getElementById('relogio').textContent = [
+    const relogio = document.getElementById('relogio');
+
+    if (!relogio) {
+        return;
+    }
+
+    relogio.textContent = [
         agora.getHours(),
         agora.getMinutes(),
         agora.getSeconds()
@@ -104,12 +133,42 @@ function escaparTexto(texto) {
         .replace(/'/g, '&#039;');
 }
 
+function formatarDataLocal(valor) {
+    if (!valor) {
+        return '';
+    }
+
+    try {
+        const data = new Date(valor);
+
+        if (Number.isNaN(data.getTime())) {
+            return String(valor || '');
+        }
+
+        return data.toLocaleString('pt-BR');
+    } catch (erro) {
+        return String(valor || '');
+    }
+}
+
 function atualizarEstatisticas() {
     totalChaves = emUso + disponiveis;
 
-    document.getElementById('totalChaves').textContent = totalChaves;
-    document.getElementById('emUso').textContent = emUso;
-    document.getElementById('disponiveis').textContent = disponiveis;
+    const totalChavesEl = document.getElementById('totalChaves');
+    const emUsoEl = document.getElementById('emUso');
+    const disponiveisEl = document.getElementById('disponiveis');
+
+    if (totalChavesEl) {
+        totalChavesEl.textContent = totalChaves;
+    }
+
+    if (emUsoEl) {
+        emUsoEl.textContent = emUso;
+    }
+
+    if (disponiveisEl) {
+        disponiveisEl.textContent = disponiveis;
+    }
 }
 
 function atualizarOperador(operador) {
@@ -205,14 +264,7 @@ function renderizarPendentes() {
         const operadorSeguro = escaparTexto(p.operador);
         const solicitanteSeguro = escaparTexto(p.solicitante);
         const setorSeguro = escaparTexto(p.setor);
-
-        let saidaFormatada = '';
-
-        try {
-            saidaFormatada = new Date(p.saida).toLocaleString('pt-BR');
-        } catch (erro) {
-            saidaFormatada = p.saida;
-        }
+        const saidaFormatada = escaparTexto(formatarDataLocal(p.saida));
 
         li.innerHTML = `
             <div class="info-chave">
@@ -221,25 +273,10 @@ function renderizarPendentes() {
                 </div>
 
                 <div class="detalhes-registro">
-                    <span>
-                        <b>Entregue por:</b>
-                        ${operadorSeguro}
-                    </span>
-
-                    <span>
-                        <b>Solicitante:</b>
-                        ${solicitanteSeguro}
-                    </span>
-
-                    <span>
-                        <b>Setor:</b>
-                        ${setorSeguro}
-                    </span>
-
-                    <span>
-                        <b>Saída:</b>
-                        ${escaparTexto(saidaFormatada)}
-                    </span>
+                    <span><b>Entregue por:</b> ${operadorSeguro}</span>
+                    <span><b>Solicitante:</b> ${solicitanteSeguro}</span>
+                    <span><b>Setor:</b> ${setorSeguro}</span>
+                    <span><b>Saída:</b> ${saidaFormatada}</span>
                 </div>
             </div>
 
@@ -335,20 +372,9 @@ function renderizarHistorico() {
                 <strong>Chave: ${escaparTexto(item.chave)}</strong>
 
                 <div class="historico-detalhes">
-                    <span>
-                        <b>${textoOperador}:</b>
-                        ${escaparTexto(item.operador)}
-                    </span>
-
-                    <span>
-                        <b>Solicitante:</b>
-                        ${escaparTexto(item.solicitante)}
-                    </span>
-
-                    <span>
-                        <b>Setor:</b>
-                        ${escaparTexto(item.setor)}
-                    </span>
+                    <span><b>${textoOperador}:</b> ${escaparTexto(item.operador)}</span>
+                    <span><b>Solicitante:</b> ${escaparTexto(item.solicitante)}</span>
+                    <span><b>Setor:</b> ${escaparTexto(item.setor)}</span>
                 </div>
             </div>
 
@@ -497,29 +523,17 @@ async function retirar() {
         }
 
         if (!solicitante) {
-            mostrarMensagem(
-                'msgRetirada',
-                '❌ Preencha o nome de quem está retirando a chave.',
-                true
-            );
+            mostrarMensagem('msgRetirada', '❌ Preencha o nome de quem está retirando a chave.', true);
             return;
         }
 
         if (!setor) {
-            mostrarMensagem(
-                'msgRetirada',
-                '❌ Preencha o setor do solicitante.',
-                true
-            );
+            mostrarMensagem('msgRetirada', '❌ Preencha o setor do solicitante.', true);
             return;
         }
 
         if (!chave) {
-            mostrarMensagem(
-                'msgRetirada',
-                '❌ Selecione uma chave disponível.',
-                true
-            );
+            mostrarMensagem('msgRetirada', '❌ Selecione uma chave disponível.', true);
             return;
         }
 
@@ -541,6 +555,8 @@ async function retirar() {
             if (campoFiltro) {
                 campoFiltro.value = '';
             }
+
+            sincronizarMovimentacoesSheetsSilencioso();
 
             await carregarDashboard(true);
         } else {
@@ -591,6 +607,9 @@ async function devolver(chave) {
 
         if (resp.sucesso) {
             mostrarMensagem('msgDevolucao', '✅ Devolução registrada!');
+
+            sincronizarMovimentacoesSheetsSilencioso();
+
             await carregarDashboard(true);
         } else {
             mostrarMensagem('msgDevolucao', '❌ Erro: ' + resp.erro, true);
@@ -612,12 +631,14 @@ async function sair() {
             method: 'POST'
         });
     } finally {
-        window.location.href = '/login.html';
+        window.location.replace('/login.html');
     }
 }
 
 window.addEventListener('load', async () => {
     await carregarDashboard(false);
+
+    sincronizarMovimentacoesSheetsSilencioso();
 
     const campoFiltroChave = document.getElementById('filtroChave');
 
@@ -654,5 +675,6 @@ window.addEventListener('load', async () => {
 
     setInterval(async () => {
         await carregarDashboard(true);
+        sincronizarMovimentacoesSheetsSilencioso();
     }, INTERVALO_ATUALIZACAO_MS);
 });
