@@ -108,6 +108,33 @@ async function enviarParaAppsScript(config, movimentacoes) {
     })
   });
 
+  const texto = await resposta.text();
+
+  if (!resposta.ok) {
+    throw new Error(
+      `Apps Script respondeu HTTP ${resposta.status}: ${texto}`
+    );
+  }
+
+  let dados;
+
+  try {
+    dados = texto ? JSON.parse(texto) : null;
+  } catch (erro) {
+    throw new Error(
+      'Apps Script retornou uma resposta inválida: ' + texto
+    );
+  }
+
+  if (!dados || dados.sucesso !== true) {
+    throw new Error(
+      'Apps Script não confirmou a sincronização: ' + texto
+    );
+  }
+
+  return dados;
+}
+
   if (!resposta.ok) {
     throw new Error(`Apps Script respondeu HTTP ${resposta.status}.`);
   }
@@ -219,8 +246,9 @@ export default async function handler(req, res) {
     }
 
     return res.status(500).json({
-      erro: 'Erro ao sincronizar movimentações com o Google Sheets.',
-      mantidasComoPendentes: movimentacoes.length
-    });
+  erro: 'Erro ao sincronizar movimentações com o Google Sheets.',
+  detalhe: String(erro && erro.message ? erro.message : erro),
+  mantidasComoPendentes: movimentacoes.length
+});
   }
 }
