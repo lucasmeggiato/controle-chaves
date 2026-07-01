@@ -396,12 +396,6 @@ async function carregarDashboard(silencioso = true) {
 
         atualizarOperador(resp.operador);
 
-        const versao = document.getElementById('versaoBackend');
-
-        if (versao) {
-            versao.textContent = `Backend: ${resp.versao || 'sem versão'}`;
-        }
-
         todasChavesDisponiveis = resp.chaves || [];
         pendentesAtuais = resp.pendentes || [];
 

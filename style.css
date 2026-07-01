@@ -150,17 +150,6 @@ body::before {
     gap: 14px;
 }
 
-.versao-backend {
-    font-family: 'Roboto Mono', Consolas, monospace;
-    font-size: 0.72rem;
-    color: var(--texto-fraco);
-    width: fit-content;
-    padding: 4px 8px;
-    background: rgba(15, 23, 42, 0.58);
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    border-radius: var(--radius-pill);
-}
-
 /* Status operador */
 
 .status-sistema {
