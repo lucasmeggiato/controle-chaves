@@ -69,6 +69,7 @@ function setOperacaoEmAndamento(valor) {
 
     document.querySelectorAll('.btn-devolver').forEach((btn) => {
         btn.disabled = valor;
+        btn.textContent = valor ? 'Aguarde...' : 'Devolver';
     });
 }
 
@@ -114,6 +115,10 @@ function atualizarEstatisticas() {
 function atualizarOperador(operador) {
     const span = document.getElementById('nomeOperador');
     const statusDiv = document.getElementById('statusOperador');
+
+    if (!span || !statusDiv) {
+        return;
+    }
 
     if (operador) {
         span.textContent = operador;
@@ -211,21 +216,30 @@ function renderizarPendentes() {
 
         li.innerHTML = `
             <div class="info-chave">
-                <div class="cabecalho-registro">
-                    <span>Chave entregue por: ${operadorSeguro}</span>
-                </div>
-
                 <div class="texto-chave">
                     Chave: ${chaveSegura}
                 </div>
 
-                <div class="cabecalho-registro">
-                    <span>Solicitante: ${solicitanteSeguro}</span>
-                    <span>Setor: ${setorSeguro}</span>
-                </div>
+                <div class="detalhes-registro">
+                    <span>
+                        <b>Entregue por:</b>
+                        ${operadorSeguro}
+                    </span>
 
-                <div class="cabecalho-registro">
-                    <span>Saída: ${escaparTexto(saidaFormatada)}</span>
+                    <span>
+                        <b>Solicitante:</b>
+                        ${solicitanteSeguro}
+                    </span>
+
+                    <span>
+                        <b>Setor:</b>
+                        ${setorSeguro}
+                    </span>
+
+                    <span>
+                        <b>Saída:</b>
+                        ${escaparTexto(saidaFormatada)}
+                    </span>
                 </div>
             </div>
 
@@ -319,8 +333,23 @@ function renderizarHistorico() {
 
             <div class="historico-info">
                 <strong>Chave: ${escaparTexto(item.chave)}</strong>
-                <span>${textoOperador}: ${escaparTexto(item.operador)}</span>
-                <span>Solicitante: ${escaparTexto(item.solicitante)} | Setor: ${escaparTexto(item.setor)}</span>
+
+                <div class="historico-detalhes">
+                    <span>
+                        <b>${textoOperador}:</b>
+                        ${escaparTexto(item.operador)}
+                    </span>
+
+                    <span>
+                        <b>Solicitante:</b>
+                        ${escaparTexto(item.solicitante)}
+                    </span>
+
+                    <span>
+                        <b>Setor:</b>
+                        ${escaparTexto(item.setor)}
+                    </span>
+                </div>
             </div>
 
             <div class="historico-data">
@@ -349,8 +378,16 @@ async function carregarDashboard(silencioso = true) {
                 selectChave.innerHTML = '<option>Carregando...</option>';
             }
 
-            document.getElementById('listaPendentes').innerHTML = '<li>Carregando...</li>';
-            document.getElementById('listaHistorico').innerHTML = '<li class="item-vazio">Carregando histórico...</li>';
+            const listaPendentes = document.getElementById('listaPendentes');
+            const listaHistorico = document.getElementById('listaHistorico');
+
+            if (listaPendentes) {
+                listaPendentes.innerHTML = '<li>Carregando...</li>';
+            }
+
+            if (listaHistorico) {
+                listaHistorico.innerHTML = '<li class="item-vazio">Carregando histórico...</li>';
+            }
         }
 
         const resp = await fetchAPI('getDashboard', {
@@ -466,17 +503,29 @@ async function retirar() {
         }
 
         if (!solicitante) {
-            mostrarMensagem('msgRetirada', '❌ Preencha o nome de quem está retirando a chave.', true);
+            mostrarMensagem(
+                'msgRetirada',
+                '❌ Preencha o nome de quem está retirando a chave.',
+                true
+            );
             return;
         }
 
         if (!setor) {
-            mostrarMensagem('msgRetirada', '❌ Preencha o setor do solicitante.', true);
+            mostrarMensagem(
+                'msgRetirada',
+                '❌ Preencha o setor do solicitante.',
+                true
+            );
             return;
         }
 
         if (!chave) {
-            mostrarMensagem('msgRetirada', '❌ Selecione uma chave disponível.', true);
+            mostrarMensagem(
+                'msgRetirada',
+                '❌ Selecione uma chave disponível.',
+                true
+            );
             return;
         }
 

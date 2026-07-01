@@ -21,7 +21,7 @@
     --borda-forte: rgba(148, 163, 184, 0.38);
 
     --texto-principal: #f8fafc;
-    --texto-secundario: #cbd5e1;
+    --texto-secundario: #dbeafe;
     --texto-fraco: #94a3b8;
     --texto-muito-fraco: #64748b;
 
@@ -518,7 +518,7 @@ button:disabled {
     border: 1px solid var(--borda);
     border-left: 4px solid var(--azul-forte);
     box-shadow: var(--sombra-suave);
-    padding: 17px 20px;
+    padding: 18px 20px;
     border-radius: var(--radius-card);
     display: flex;
     justify-content: space-between;
@@ -554,8 +554,37 @@ button:disabled {
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
     min-width: 0;
+}
+
+.texto-chave {
+    font-size: 1.24rem;
+    font-weight: 950;
+    color: var(--texto-principal);
+    letter-spacing: -0.01em;
+    word-break: break-word;
+    margin-bottom: 3px;
+}
+
+.detalhes-registro {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 2px;
+}
+
+.detalhes-registro span {
+    color: var(--texto-secundario);
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 0.94rem;
+    line-height: 1.45;
+    font-weight: 650;
+}
+
+.detalhes-registro b {
+    color: var(--texto-principal);
+    font-weight: 950;
 }
 
 .cabecalho-registro {
@@ -566,14 +595,6 @@ button:disabled {
     font-family: 'Roboto Mono', Consolas, monospace;
     font-size: 0.78rem;
     color: var(--texto-fraco);
-}
-
-.texto-chave {
-    font-size: 1.1rem;
-    font-weight: 900;
-    color: var(--texto-principal);
-    letter-spacing: -0.01em;
-    word-break: break-word;
 }
 
 .acoes {
@@ -690,10 +711,10 @@ button:disabled {
     border: 1px solid rgba(148, 163, 184, 0.14);
     border-left: 4px solid var(--azul);
     border-radius: 13px;
-    padding: 14px 16px;
+    padding: 15px 16px;
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 14px;
+    gap: 16px;
     align-items: center;
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.19);
     animation: fadeIn 0.28s ease both;
@@ -712,9 +733,9 @@ button:disabled {
 }
 
 .badge-evento {
-    min-width: 92px;
+    min-width: 98px;
     text-align: center;
-    padding: 7px 10px;
+    padding: 8px 11px;
     border-radius: var(--radius-pill);
     font-size: 0.72rem;
     font-weight: 950;
@@ -737,28 +758,42 @@ button:disabled {
 .historico-info {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
     min-width: 0;
 }
 
 .historico-info strong {
     color: var(--texto-principal);
-    font-size: 0.98rem;
-    font-weight: 900;
+    font-size: 1.1rem;
+    font-weight: 950;
     word-break: break-word;
 }
 
-.historico-info span {
-    color: var(--texto-fraco);
-    font-family: 'Roboto Mono', Consolas, monospace;
-    font-size: 0.76rem;
+.historico-detalhes {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 4px;
+}
+
+.historico-detalhes span {
+    color: var(--texto-secundario);
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 0.92rem;
     line-height: 1.45;
+    font-weight: 650;
+}
+
+.historico-detalhes b {
+    color: var(--texto-principal);
+    font-weight: 950;
 }
 
 .historico-data {
     color: var(--texto-secundario);
     font-family: 'Roboto Mono', Consolas, monospace;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
+    font-weight: 700;
     white-space: nowrap;
 }
 
@@ -768,7 +803,7 @@ button:disabled {
     text-align: left;
 }
 
-/* Login, caso use o style.css também na tela de login */
+/* Login */
 
 .login-card {
     width: 100%;
@@ -1025,19 +1060,19 @@ button:disabled {
         font-size: 0.88rem;
     }
 
-    .cabecalho-registro {
-        font-size: 0.73rem;
+    .texto-chave {
+        font-size: 1.08rem;
     }
 
-    .texto-chave {
-        font-size: 1rem;
+    .detalhes-registro span,
+    .historico-detalhes span {
+        font-size: 0.86rem;
     }
 
     .historico-info strong {
-        font-size: 0.92rem;
+        font-size: 1rem;
     }
 
-    .historico-info span,
     .historico-data {
         font-size: 0.72rem;
     }
