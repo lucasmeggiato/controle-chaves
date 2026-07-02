@@ -13,6 +13,7 @@ const LIMITE_HISTORICO = 80;
 
 let atualizacaoEmAndamento = false;
 let operacaoEmAndamento = false;
+let sincronizacaoSheetsEmAndamento = false;
 let timeoutBuscaHistorico = null;
 
 async function fetchAPI(acao, dadosExtras = {}) {
@@ -42,6 +43,12 @@ async function fetchAPI(acao, dadosExtras = {}) {
 }
 
 async function sincronizarMovimentacoesSheetsSilencioso() {
+    if (sincronizacaoSheetsEmAndamento) {
+        return;
+    }
+
+    sincronizacaoSheetsEmAndamento = true;
+
     try {
         const resp = await fetch('/api/sincronizar-movimentacoes-sheets', {
             method: 'POST',
@@ -62,6 +69,8 @@ async function sincronizarMovimentacoesSheetsSilencioso() {
         }
     } catch (erro) {
         console.warn('Não foi possível sincronizar com Google Sheets agora.');
+    } finally {
+        sincronizacaoSheetsEmAndamento = false;
     }
 }
 

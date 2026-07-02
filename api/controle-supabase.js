@@ -22,7 +22,7 @@ function usuarioAutenticado(req) {
 }
 
 const TIMEZONE = 'America/Sao_Paulo';
-const VERSAO_SISTEMA = 'supabase-2026-07-01-01';
+const VERSAO_SISTEMA = 'supabase-2026-07-01-02';
 
 function textoSeguro(valor) {
   return String(valor || '').trim();
@@ -33,7 +33,22 @@ function normalizarTexto(valor) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ');
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function chaveEhVaga(valor) {
+  const texto = normalizarTexto(valor);
+
+  if (!texto) {
+    return true;
+  }
+
+  if (texto === 'vago') {
+    return true;
+  }
+
+  return /(^|[\s\-_/])vago($|[\s\-_/])/.test(texto);
 }
 
 function formatarData(valor) {
@@ -235,6 +250,10 @@ async function getDashboard(dados) {
     'chaves?select=id,codigo_interno,identificacao,ativa&ativa=eq.true&order=codigo_interno.asc'
   );
 
+  const chavesValidas = chavesAtivas.filter((chave) =>
+    !chaveEhVaga(chave.identificacao)
+  );
+
   const pendentesBanco = await chamarSupabase(
     [
       'movimentacoes?',
@@ -248,17 +267,19 @@ async function getDashboard(dados) {
     pendentesBanco.map((p) => p.chave_id)
   );
 
-  const chavesDisponiveis = chavesAtivas
+  const chavesDisponiveis = chavesValidas
     .filter((chave) => !idsEmUso.has(chave.id))
     .map((chave) => chave.identificacao);
 
-  const pendentes = pendentesBanco.map((p) => ({
-    operador: p.operador_retirada,
-    solicitante: p.solicitante,
-    setor: p.setor,
-    chave: p.chave_identificacao,
-    saida: p.data_saida
-  }));
+  const pendentes = pendentesBanco
+    .filter((p) => !chaveEhVaga(p.chave_identificacao))
+    .map((p) => ({
+      operador: p.operador_retirada,
+      solicitante: p.solicitante,
+      setor: p.setor,
+      chave: p.chave_identificacao,
+      saida: p.data_saida
+    }));
 
   let historico = [];
 
@@ -272,7 +293,10 @@ async function getDashboard(dados) {
       ].join('')
     );
 
-    historico = montarHistorico(movimentosRecentes, limiteHistorico);
+    historico = montarHistorico(
+      movimentosRecentes.filter((mov) => !chaveEhVaga(mov.chave_identificacao)),
+      limiteHistorico
+    );
   }
 
   return {
@@ -299,7 +323,10 @@ async function buscarHistorico(dados) {
     ].join('')
   );
 
-  const historicoCompleto = montarHistorico(movimentos, 10000);
+  const historicoCompleto = montarHistorico(
+    movimentos.filter((mov) => !chaveEhVaga(mov.chave_identificacao)),
+    10000
+  );
 
   const historicoFiltrado = historicoCompleto
     .filter((item) => historicoCombinaComTermo(item, termoNormalizado))
@@ -320,6 +347,12 @@ async function retirarChave(dados) {
   if (!operador || !solicitante || !setor || !chaveInformada) {
     return {
       erro: 'Todos os campos são obrigatórios.'
+    };
+  }
+
+  if (chaveEhVaga(chaveInformada)) {
+    return {
+      erro: 'Esta posição está vaga e não pode ser retirada.'
     };
   }
 
@@ -348,6 +381,12 @@ async function retirarChave(dados) {
   }
 
   const chave = chaves[0];
+
+  if (chaveEhVaga(chave.identificacao)) {
+    return {
+      erro: 'Esta posição está vaga e não pode ser retirada.'
+    };
+  }
 
   const pendente = await chamarSupabase(
     [

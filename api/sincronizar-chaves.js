@@ -1,151 +1,195 @@
-export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
+var SYNC_ABA_CHAVES_SUPABASE = 'Chaves';
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      erro: 'Método não permitido.'
+var SYNC_URL_SUPABASE = 'https://controle-chaves-umber.vercel.app/api/sincronizar-chaves';
+
+var SYNC_TOKEN_SUPABASE = 'sync_chaves_2026_X9pQ72LmA45vR8zK';
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Supabase')
+    .addItem('Sincronizar chaves', 'sincronizarChavesComSupabase')
+    .addToUi();
+}
+
+function syncTextoSeguro(valor) {
+  return String(valor || '').trim();
+}
+
+function syncNormalizarTexto(valor) {
+  return syncTextoSeguro(valor)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function syncIdentificacaoEhVaga(identificacao) {
+  var texto = syncNormalizarTexto(identificacao);
+
+  if (!texto) {
+    return true;
+  }
+
+  if (texto === 'vago') {
+    return true;
+  }
+
+  return /(^|[\s\-_/])vago($|[\s\-_/])/.test(texto);
+}
+
+function syncConverterAtiva(valor) {
+  var texto = syncNormalizarTexto(valor);
+
+  if (valor === true) {
+    return true;
+  }
+
+  if (
+    texto === 'true' ||
+    texto === 'verdadeiro' ||
+    texto === 'sim' ||
+    texto === 's' ||
+    texto === '1'
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function sincronizarChavesComSupabase() {
+  var planilha = SpreadsheetApp.getActiveSpreadsheet();
+  var aba = planilha.getSheetByName(SYNC_ABA_CHAVES_SUPABASE);
+
+  if (!aba) {
+    SpreadsheetApp.getUi().alert(
+      'A aba "' + SYNC_ABA_CHAVES_SUPABASE + '" não foi encontrada.'
+    );
+    return;
+  }
+
+  var ultimaLinha = aba.getLastRow();
+
+  if (ultimaLinha < 2) {
+    SpreadsheetApp.getUi().alert('Não há chaves para sincronizar.');
+    return;
+  }
+
+  var dados = aba.getRange(2, 1, ultimaLinha - 1, 3).getValues();
+
+  var chaves = [];
+  var codigosDesativar = [];
+
+  for (var i = 0; i < dados.length; i++) {
+    var linha = i + 2;
+
+    var codigoInterno = syncTextoSeguro(dados[i][0]);
+    var identificacao = syncTextoSeguro(dados[i][1]);
+    var ativa = syncConverterAtiva(dados[i][2]);
+
+    if (!codigoInterno && !identificacao) {
+      continue;
+    }
+
+    if (!codigoInterno && identificacao) {
+      SpreadsheetApp.getUi().alert(
+        'Linha ' + linha + ' tem identificação, mas está sem codigo_interno.'
+      );
+      return;
+    }
+
+    if (codigoInterno && !/^CH-\d{3}$/.test(codigoInterno)) {
+      SpreadsheetApp.getUi().alert(
+        'Código interno inválido na linha ' + linha + ': ' + codigoInterno
+      );
+      return;
+    }
+
+    if (codigoInterno && syncIdentificacaoEhVaga(identificacao)) {
+      codigosDesativar.push(codigoInterno);
+      continue;
+    }
+
+    chaves.push({
+      codigo_interno: codigoInterno,
+      identificacao: identificacao,
+      ativa: ativa
     });
   }
 
+  if (chaves.length === 0 && codigosDesativar.length === 0) {
+    SpreadsheetApp.getUi().alert('Nenhuma chave válida encontrada.');
+    return;
+  }
+
+  var confirmar = SpreadsheetApp.getUi().alert(
+    'Sincronizar com Supabase?',
+    'Chaves cadastradas: ' + chaves.length +
+      '\nPosições vagas/desativadas: ' + codigosDesativar.length +
+      '\n\nDeseja continuar?',
+    SpreadsheetApp.getUi().ButtonSet.YES_NO
+  );
+
+  if (confirmar !== SpreadsheetApp.getUi().Button.YES) {
+    return;
+  }
+
+  var payload = {
+    token: SYNC_TOKEN_SUPABASE,
+    chaves: chaves,
+    codigos_desativar: codigosDesativar
+  };
+
   try {
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const SYNC_TOKEN = process.env.SYNC_TOKEN;
+    planilha.toast(
+      'Enviando chaves para o Supabase...',
+      'Supabase',
+      6
+    );
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SYNC_TOKEN) {
-      return res.status(500).json({
-        erro: 'Configuração do servidor incompleta.'
-      });
-    }
-
-    const { token, chaves, codigos_desativar } = req.body || {};
-
-    if (token !== SYNC_TOKEN) {
-      return res.status(401).json({
-        erro: 'Acesso negado.'
-      });
-    }
-
-    if (!Array.isArray(chaves)) {
-      return res.status(400).json({
-        erro: 'Lista de chaves inválida.'
-      });
-    }
-
-    const mapa = new Map();
-
-    for (const item of chaves) {
-      const codigoInterno = String(item.codigo_interno || '').trim();
-      const identificacao = String(item.identificacao || '').trim();
-
-      if (!codigoInterno || !identificacao) {
-        continue;
-      }
-
-      if (!/^CH-\d{3}$/.test(codigoInterno)) {
-        return res.status(400).json({
-          erro: `Código interno inválido: ${codigoInterno}`
-        });
-      }
-
-      mapa.set(codigoInterno, {
-        codigo_interno: codigoInterno,
-        identificacao,
-        ativa: item.ativa === true
-      });
-    }
-
-    const chavesLimpas = Array.from(mapa.values());
-
-    let sincronizadas = 0;
-    let desativadas = 0;
-
-    if (chavesLimpas.length > 0) {
-      const respostaUpsert = await fetch(
-        `${SUPABASE_URL}/rest/v1/chaves?on_conflict=codigo_interno`,
-        {
-          method: 'POST',
-          headers: {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
-            Prefer: 'resolution=merge-duplicates,return=representation'
-          },
-          body: JSON.stringify(chavesLimpas)
-        }
-      );
-
-      const textoUpsert = await respostaUpsert.text();
-
-      if (!respostaUpsert.ok) {
-        return res.status(500).json({
-          erro: 'Erro ao sincronizar chaves com Supabase.',
-          detalhe: textoUpsert
-        });
-      }
-
-      try {
-        const dados = JSON.parse(textoUpsert);
-        sincronizadas = Array.isArray(dados) ? dados.length : chavesLimpas.length;
-      } catch (erro) {
-        sincronizadas = chavesLimpas.length;
-      }
-    }
-
-    const codigosDesativarLimpos = Array.isArray(codigos_desativar)
-      ? Array.from(
-          new Set(
-            codigos_desativar
-              .map((codigo) => String(codigo || '').trim())
-              .filter((codigo) => /^CH-\d{3}$/.test(codigo))
-          )
-        )
-      : [];
-
-    if (codigosDesativarLimpos.length > 0) {
-      const filtro = codigosDesativarLimpos.join(',');
-
-      const respostaDesativar = await fetch(
-        `${SUPABASE_URL}/rest/v1/chaves?codigo_interno=in.(${filtro})`,
-        {
-          method: 'PATCH',
-          headers: {
-            apikey: SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
-            Prefer: 'return=representation'
-          },
-          body: JSON.stringify({
-            ativa: false
-          })
-        }
-      );
-
-      const textoDesativar = await respostaDesativar.text();
-
-      if (!respostaDesativar.ok) {
-        return res.status(500).json({
-          erro: 'Erro ao desativar chaves vazias no Supabase.',
-          detalhe: textoDesativar
-        });
-      }
-
-      try {
-        const dados = JSON.parse(textoDesativar);
-        desativadas = Array.isArray(dados) ? dados.length : 0;
-      } catch (erro) {
-        desativadas = 0;
-      }
-    }
-
-    return res.status(200).json({
-      sucesso: true,
-      sincronizadas,
-      desativadas
+    var resposta = UrlFetchApp.fetch(SYNC_URL_SUPABASE, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
     });
+
+    var codigo = resposta.getResponseCode();
+    var texto = resposta.getContentText();
+    var json = {};
+
+    try {
+      json = JSON.parse(texto);
+    } catch (erro) {}
+
+    if (codigo < 200 || codigo >= 300 || !json.sucesso) {
+      var mensagemErro = json.erro || texto;
+
+      if (json.detalhe) {
+        mensagemErro += '\n\nDetalhe:\n' + json.detalhe;
+      }
+
+      SpreadsheetApp.getUi().alert(
+        'Erro ao sincronizar:\n\n' + mensagemErro
+      );
+      return;
+    }
+
+    planilha.toast(
+      'Sincronização concluída.',
+      'Supabase',
+      6
+    );
+
+    SpreadsheetApp.getUi().alert(
+      'Sincronização concluída!' +
+      '\n\nChaves cadastradas sincronizadas: ' + json.sincronizadas +
+      '\nPosições vagas/desativadas: ' + json.desativadas
+    );
   } catch (erro) {
-    return res.status(500).json({
-      erro: 'Erro interno: ' + erro.message
-    });
+    SpreadsheetApp.getUi().alert(
+      'Erro de conexão ao sincronizar:\n\n' + erro.message
+    );
   }
 }
