@@ -1313,3 +1313,52 @@ button {
         font-size: 0.84rem;
     }
 }
+
+/* ============================================
+   CHAVES EM USO — BUSCA E REGULARIZAÇÃO
+   ============================================ */
+
+.lista-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin: 22px 0 12px;
+}
+
+.lista-topo .titulo-lista {
+    margin: 0 0 4px;
+}
+
+.lista-topo p {
+    color: var(--texto-fraco);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    max-width: 720px;
+}
+
+#filtroPendentes {
+    width: min(320px, 100%);
+    flex-shrink: 0;
+}
+
+.btn-devolver {
+    white-space: nowrap;
+}
+
+@media (max-width: 840px) {
+    .lista-topo {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    #filtroPendentes {
+        width: 100%;
+    }
+
+    .btn-devolver {
+        white-space: normal;
+        line-height: 1.25;
+    }
+}

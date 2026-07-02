@@ -22,7 +22,7 @@ function usuarioAutenticado(req) {
 }
 
 const TIMEZONE = 'America/Sao_Paulo';
-const VERSAO_SISTEMA = 'supabase-2026-07-01-02';
+const VERSAO_SISTEMA = 'supabase-2026-07-01-03';
 
 function textoSeguro(valor) {
   return String(valor || '').trim();
@@ -129,7 +129,7 @@ function obterConfigSupabase() {
   }
 
   return {
-    SUPABASE_URL,
+    SUPABASE_URL: SUPABASE_URL.replace(/\/$/, ''),
     SUPABASE_SERVICE_ROLE_KEY
   };
 }
@@ -264,7 +264,9 @@ async function getDashboard(dados) {
   );
 
   const idsEmUso = new Set(
-    pendentesBanco.map((p) => p.chave_id)
+    pendentesBanco
+      .filter((p) => !chaveEhVaga(p.chave_identificacao))
+      .map((p) => p.chave_id)
   );
 
   const chavesDisponiveis = chavesValidas
@@ -401,7 +403,7 @@ async function retirarChave(dados) {
 
   if (pendente.length) {
     return {
-      erro: 'Esta chave já está em uso.'
+      erro: 'Esta chave já está em uso. Regularize a devolução antes de retirar novamente.'
     };
   }
 
@@ -425,7 +427,7 @@ async function retirarChave(dados) {
   } catch (erro) {
     if (String(erro.message).includes('movimentacoes_chave_em_uso_unica')) {
       return {
-        erro: 'Esta chave já está em uso.'
+        erro: 'Esta chave já está em uso. Regularize a devolução antes de retirar novamente.'
       };
     }
 
@@ -454,7 +456,7 @@ async function devolverChave(dados) {
   const pendentes = await chamarSupabase(
     [
       'movimentacoes?',
-      'select=id,chave_identificacao,status',
+      'select=id,chave_identificacao,status,operador_retirada,solicitante,setor',
       '&status=eq.em_uso',
       '&chave_identificacao=eq.',
       encodeURIComponent(chaveInformada),
@@ -476,6 +478,7 @@ async function devolverChave(dados) {
   }
 
   const movimento = pendentes[0];
+  const operadorRetirada = textoSeguro(movimento.operador_retirada);
 
   try {
     await chamarSupabase(`movimentacoes?id=eq.${movimento.id}`, {
@@ -496,6 +499,24 @@ async function devolverChave(dados) {
     return {
       erro: 'Erro ao registrar devolução: ' + erro.message
     };
+  }
+
+  if (
+    operadorRetirada &&
+    normalizarTexto(operadorRetirada) !== normalizarTexto(operadorDevolucao)
+  ) {
+    await registrarLog(
+      'regularizacao_devolucao',
+      'Devolução/regularização feita por operador diferente do operador da retirada.',
+      operadorDevolucao,
+      chaveInformada,
+      {
+        operador_retirada: operadorRetirada,
+        operador_devolucao: operadorDevolucao,
+        solicitante: movimento.solicitante || '',
+        setor: movimento.setor || ''
+      }
+    );
   }
 
   return {

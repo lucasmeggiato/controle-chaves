@@ -107,14 +107,28 @@
         </section>
 
         <section class="painel-lista">
+    <div class="lista-topo">
+        <div>
             <h3 class="titulo-lista">Chaves em uso</h3>
+            <p>
+                Devolva normalmente ou regularize uma pendência quando a chave já estiver fisicamente no claviculário.
+            </p>
+        </div>
 
-            <ul id="listaPendentes" class="lista-chaves">
-                <li class="item-vazio">Carregando chaves em uso...</li>
-            </ul>
+        <input
+            type="text"
+            id="filtroPendentes"
+            placeholder="Buscar chave em uso"
+            autocomplete="off"
+        >
+    </div>
 
-            <div id="msgDevolucao" class="msg"></div>
-        </section>
+    <ul id="listaPendentes" class="lista-chaves">
+        <li class="item-vazio">Carregando chaves em uso...</li>
+    </ul>
+
+    <div id="msgDevolucao" class="msg"></div>
+</section>
 
         <section class="painel-historico">
             <div class="historico-topo">

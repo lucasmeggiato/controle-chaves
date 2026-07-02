@@ -254,19 +254,43 @@ function renderizarChavesFiltradas(chaveSelecionadaAntes = '') {
 
 function renderizarPendentes() {
     const lista = document.getElementById('listaPendentes');
+    const campoFiltro = document.getElementById('filtroPendentes');
 
     if (!lista) {
         return;
     }
 
+    const filtro = campoFiltro ? campoFiltro.value : '';
+
+    const pendentesFiltrados = pendentesAtuais.filter((p) => {
+        if (!filtro) {
+            return true;
+        }
+
+        const textoBusca = [
+            p.chave,
+            p.operador,
+            p.solicitante,
+            p.setor,
+            p.saida
+        ].join(' ');
+
+        return normalizarTexto(textoBusca).includes(normalizarTexto(filtro));
+    });
+
     lista.innerHTML = '';
 
     if (!pendentesAtuais.length) {
-        lista.innerHTML = '<li>Nenhuma chave em uso.</li>';
+        lista.innerHTML = '<li class="item-vazio">Nenhuma chave em uso.</li>';
         return;
     }
 
-    pendentesAtuais.forEach((p) => {
+    if (!pendentesFiltrados.length) {
+        lista.innerHTML = '<li class="item-vazio">Nenhuma chave em uso encontrada para essa busca.</li>';
+        return;
+    }
+
+    pendentesFiltrados.forEach((p) => {
         const li = document.createElement('li');
 
         const chaveSegura = escaparTexto(p.chave);
@@ -290,7 +314,7 @@ function renderizarPendentes() {
             </div>
 
             <div class="acoes">
-                <button class="btn-devolver">Devolver</button>
+                <button class="btn-devolver">Devolver / Regularizar</button>
             </div>
         `;
 
@@ -417,7 +441,7 @@ async function carregarDashboard(silencioso = true) {
             const listaHistorico = document.getElementById('listaHistorico');
 
             if (listaPendentes) {
-                listaPendentes.innerHTML = '<li>Carregando...</li>';
+                listaPendentes.innerHTML = '<li class="item-vazio">Carregando...</li>';
             }
 
             if (listaHistorico) {
@@ -601,8 +625,34 @@ async function devolver(chave) {
             return;
         }
 
+        const pendencia = pendentesAtuais.find((item) =>
+            normalizarTexto(item.chave) === normalizarTexto(chave)
+        );
+
+        const operadorRetirada = pendencia && pendencia.operador
+            ? pendencia.operador
+            : 'operador anterior';
+
+        const solicitante = pendencia && pendencia.solicitante
+            ? pendencia.solicitante
+            : 'não informado';
+
+        const setor = pendencia && pendencia.setor
+            ? pendencia.setor
+            : 'não informado';
+
+        const saida = pendencia && pendencia.saida
+            ? formatarDataLocal(pendencia.saida)
+            : 'não informada';
+
         const confirmar = confirm(
-            `Confirma a devolução da chave "${chave}" por ${operadorDevolucao}?`
+            'Confirma a devolução/regularização da chave "' + chave + '"?\n\n' +
+            'Use esta opção somente se a chave estiver fisicamente no claviculário.\n\n' +
+            'Retirada registrada por: ' + operadorRetirada + '\n' +
+            'Solicitante: ' + solicitante + '\n' +
+            'Setor: ' + setor + '\n' +
+            'Saída: ' + saida + '\n\n' +
+            'A devolução será registrada por: ' + operadorDevolucao
         );
 
         if (!confirmar) {
@@ -615,7 +665,7 @@ async function devolver(chave) {
         });
 
         if (resp.sucesso) {
-            mostrarMensagem('msgDevolucao', '✅ Devolução registrada!');
+            mostrarMensagem('msgDevolucao', '✅ Devolução/regularização registrada!');
 
             sincronizarMovimentacoesSheetsSilencioso();
 
@@ -654,6 +704,14 @@ window.addEventListener('load', async () => {
     if (campoFiltroChave) {
         campoFiltroChave.addEventListener('input', () => {
             renderizarChavesFiltradas();
+        });
+    }
+
+    const campoFiltroPendentes = document.getElementById('filtroPendentes');
+
+    if (campoFiltroPendentes) {
+        campoFiltroPendentes.addEventListener('input', () => {
+            renderizarPendentes();
         });
     }
 

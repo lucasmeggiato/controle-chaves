@@ -2,12 +2,19 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Entrar – Controle de Chaves</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet"
+    >
 
     <style>
         * {
@@ -42,6 +49,10 @@
             --shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
         }
 
+        html {
+            min-height: 100%;
+        }
+
         body {
             min-height: 100vh;
             color: var(--texto);
@@ -52,7 +63,7 @@
             align-items: center;
             justify-content: center;
             padding: 32px;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
         body::before {
@@ -69,7 +80,7 @@
 
         .login-shell {
             width: 100%;
-            max-width: 1040px;
+            max-width: 1080px;
             display: grid;
             grid-template-columns: 1.08fr 0.92fr;
             gap: 24px;
@@ -87,7 +98,6 @@
             position: relative;
         }
 
-        /* cantos estilo "terminal de segurança" — mesma assinatura do dashboard */
         .brand-card::before,
         .login-card::before {
             content: '';
@@ -117,11 +127,12 @@
         }
 
         .brand-card {
-            min-height: 440px;
+            min-height: 460px;
             padding: 42px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            gap: 34px;
             background:
                 radial-gradient(circle at 85% 8%, rgba(201, 162, 39, 0.07), transparent 34%),
                 var(--card);
@@ -129,9 +140,17 @@
 
         .brand-top {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            gap: 18px;
+            gap: 24px;
+            margin-bottom: 8px;
+        }
+
+        .brand-identity {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
         }
 
         .logo-box {
@@ -143,6 +162,7 @@
             background: var(--latao-fraco);
             border: 1px solid var(--latao-borda);
             color: var(--latao-claro);
+            flex-shrink: 0;
         }
 
         .logo-box svg {
@@ -163,6 +183,8 @@
             font-weight: 800;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+            white-space: nowrap;
+            margin-top: 17px;
         }
 
         .status-dot {
@@ -171,17 +193,15 @@
             border-radius: 50%;
             background: var(--verde);
             box-shadow: 0 0 0 5px rgba(52, 211, 153, 0.14);
-        }
-
-        .brand-content {
-            max-width: 560px;
+            flex-shrink: 0;
         }
 
         .eyebrow {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 13px;
+            justify-content: center;
+            padding: 8px 14px;
+            min-height: 34px;
             border-radius: 999px;
             color: var(--latao-claro);
             background: var(--latao-fraco);
@@ -190,74 +210,87 @@
             font-weight: 800;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            margin-bottom: 20px;
+            white-space: nowrap;
+        }
+
+        .brand-content {
+            max-width: 560px;
+            margin-top: 0;
         }
 
         .brand-content h1 {
-            font-size: clamp(38px, 4.8vw, 58px);
+            max-width: 440px;
+            font-size: clamp(46px, 5vw, 64px);
             line-height: 0.98;
-            letter-spacing: -0.04em;
-            font-weight: 800;
-            margin-bottom: 20px;
+            letter-spacing: -0.045em;
+            font-weight: 900;
+            margin-bottom: 24px;
             color: var(--texto);
         }
 
         .brand-content p {
             color: var(--muted);
             font-size: 16px;
-            line-height: 1.65;
-            max-width: 480px;
+            line-height: 1.72;
+            max-width: 520px;
         }
 
         .brand-footer {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 12px;
+            margin-top: 4px;
         }
 
         .mini-stat {
+            min-height: 92px;
             padding: 15px;
             border-radius: 13px;
             background: var(--bg-fundo-2);
             border: 1px solid var(--borda);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .mini-stat strong {
             display: block;
-            font-size: 16px;
-            margin-bottom: 4px;
+            font-size: 17px;
+            line-height: 1.1;
             color: var(--latao-claro);
-            font-family: 'Inter', sans-serif;
+            font-weight: 800;
         }
 
         .mini-stat span {
             display: block;
             color: var(--muted);
             font-size: 12px;
+            line-height: 1.35;
             font-weight: 600;
         }
 
         .login-card {
-            padding: 38px;
+            padding: 42px 38px;
             align-self: center;
         }
 
         .login-header {
-            margin-bottom: 26px;
+            margin-bottom: 28px;
         }
 
         .login-header h2 {
-            font-size: 26px;
+            font-size: 27px;
             font-weight: 800;
+            line-height: 1.15;
             letter-spacing: -0.03em;
-            margin-bottom: 8px;
+            margin-bottom: 9px;
             color: var(--texto);
         }
 
         .login-header p {
             color: var(--muted);
             font-size: 14px;
-            line-height: 1.55;
+            line-height: 1.6;
         }
 
         .form-group {
@@ -295,6 +328,10 @@
         input:focus {
             border-color: var(--latao);
             box-shadow: 0 0 0 3px var(--latao-fraco);
+        }
+
+        input::placeholder {
+            color: var(--muted-2);
         }
 
         .toggle-password {
@@ -370,6 +407,7 @@
             color: var(--muted);
             font-size: 12px;
             font-weight: 700;
+            line-height: 1.4;
         }
 
         .security-line .status-dot {
@@ -381,27 +419,45 @@
             margin-top: 15px;
             color: var(--muted-2);
             font-size: 11px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         @media (max-width: 900px) {
             body {
                 align-items: flex-start;
-                overflow: auto;
+                overflow-y: auto;
+                padding: 24px;
             }
 
             .login-shell {
                 grid-template-columns: 1fr;
-                max-width: 560px;
+                max-width: 600px;
             }
 
             .brand-card {
-                min-height: 300px;
-                padding: 30px;
+                min-height: auto;
+                padding: 32px;
+                gap: 28px;
+            }
+
+            .brand-content h1 {
+                font-size: 44px;
+                line-height: 1.02;
+                margin-bottom: 18px;
+            }
+
+            .brand-content p {
+                font-size: 15px;
+                line-height: 1.6;
             }
 
             .brand-footer {
                 grid-template-columns: 1fr;
+            }
+
+            .mini-stat {
+                min-height: auto;
+                gap: 8px;
             }
         }
 
@@ -417,13 +473,35 @@
             }
 
             .brand-top {
-                align-items: flex-start;
                 flex-direction: column;
-                gap: 14px;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .status-pill {
+                margin-top: 0;
+            }
+
+            .logo-box {
+                width: 62px;
+                height: 62px;
+            }
+
+            .logo-box svg {
+                width: 30px;
+                height: 30px;
+            }
+
+            .eyebrow {
+                white-space: normal;
+                line-height: 1.35;
+                text-align: left;
             }
 
             .brand-content h1 {
-                font-size: 38px;
+                font-size: 39px;
+                line-height: 1.03;
+                letter-spacing: -0.035em;
             }
 
             .brand-content p {
@@ -431,21 +509,53 @@
             }
 
             .login-header h2 {
-                font-size: 23px;
+                font-size: 24px;
+            }
+
+            input,
+            .btn-login {
+                height: 50px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            body {
+                padding: 14px;
+            }
+
+            .brand-card,
+            .login-card {
+                padding: 22px;
+            }
+
+            .brand-content h1 {
+                font-size: 35px;
+            }
+
+            .status-pill,
+            .eyebrow {
+                font-size: 10px;
             }
         }
     </style>
 </head>
+
 <body>
     <main class="login-shell">
         <section class="brand-card" aria-label="Controle de Chaves">
             <div class="brand-top">
-                <div class="logo-box" aria-hidden="true">
-                    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="11" cy="11" r="6.2" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="11" cy="11" r="1.8" fill="currentColor"/>
-                        <path d="M15.3 15.3L26 26M20.6 20.6L23.6 17.6M23 23L26 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                <div class="brand-identity">
+                    <div class="logo-box" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="6.2" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="11" cy="11" r="1.8" fill="currentColor"/>
+                            <path d="M15.3 15.3L26 26M20.6 20.6L23.6 17.6M23 23L26 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+
+                    <div class="eyebrow">
+                        Central de Segurança
+                    </div>
                 </div>
 
                 <div class="status-pill">
@@ -455,8 +565,6 @@
             </div>
 
             <div class="brand-content">
-                <div class="eyebrow">Central de Segurança</div>
-
                 <h1>Controle de Chaves</h1>
 
                 <p>
