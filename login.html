@@ -1,598 +1,991 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entrar – Controle de Chaves</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-
-        :root {
-            --bg-1: #030712;
-            --bg-2: #08111f;
-            --card: rgba(15, 23, 42, 0.78);
-            --card-strong: rgba(15, 23, 42, 0.96);
-            --border: rgba(148, 163, 184, 0.18);
-            --border-strong: rgba(56, 189, 248, 0.32);
-            --text: #f8fafc;
-            --muted: #94a3b8;
-            --muted-2: #64748b;
-            --blue: #2563eb;
-            --blue-2: #38bdf8;
-            --green: #10b981;
-            --danger: #fb7185;
-            --shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
-        }
-
-        body {
-            min-height: 100vh;
-            color: var(--text);
-            background:
-                radial-gradient(circle at 18% 22%, rgba(14, 165, 233, 0.22), transparent 32%),
-                radial-gradient(circle at 82% 18%, rgba(99, 102, 241, 0.23), transparent 30%),
-                radial-gradient(circle at 70% 78%, rgba(16, 185, 129, 0.12), transparent 34%),
-                linear-gradient(135deg, var(--bg-1), var(--bg-2));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 32px;
-            overflow: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
-            background-size: 42px 42px;
-            mask-image: linear-gradient(to bottom, black, transparent 88%);
-            pointer-events: none;
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            width: 520px;
-            height: 520px;
-            right: -180px;
-            top: -170px;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.24), transparent 68%);
-            filter: blur(8px);
-            pointer-events: none;
-        }
-
-        .login-shell {
-            width: 100%;
-            max-width: 1040px;
-            display: grid;
-            grid-template-columns: 1.08fr 0.92fr;
-            gap: 28px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .brand-card,
-        .login-card {
-            border: 1px solid var(--border);
-            background: var(--card);
-            backdrop-filter: blur(22px);
-            border-radius: 28px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            position: relative;
-        }
-
-        .brand-card {
-            min-height: 440px;
-            padding: 42px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .brand-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 18% 24%, rgba(56, 189, 248, 0.18), transparent 28%),
-                radial-gradient(circle at 88% 10%, rgba(37, 99, 235, 0.18), transparent 32%),
-                linear-gradient(135deg, rgba(15, 23, 42, 0.68), rgba(2, 6, 23, 0.9));
-            z-index: -1;
-        }
-
-        .brand-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-        }
-
-        .logo-box {
-            width: 78px;
-            height: 78px;
-            border-radius: 24px;
-            display: grid;
-            place-items: center;
-            background:
-                linear-gradient(135deg, rgba(14, 165, 233, 0.26), rgba(37, 99, 235, 0.16));
-            border: 1px solid rgba(56, 189, 248, 0.42);
-            box-shadow:
-                0 18px 42px rgba(14, 165, 233, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08);
-            font-size: 36px;
-        }
-
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-            padding: 10px 14px;
-            border-radius: 999px;
-            color: #bae6fd;
-            background: rgba(14, 165, 233, 0.12);
-            border: 1px solid rgba(56, 189, 248, 0.22);
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.13);
-        }
-
-        .brand-content {
-            max-width: 560px;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 14px;
-            border-radius: 999px;
-            color: #38bdf8;
-            background: rgba(14, 165, 233, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.22);
-            font-size: 12px;
-            font-weight: 900;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin-bottom: 20px;
-        }
-
-        .brand-content h1 {
-            font-size: clamp(42px, 5vw, 66px);
-            line-height: 0.95;
-            letter-spacing: -0.07em;
-            font-weight: 900;
-            margin-bottom: 22px;
-        }
-
-        .brand-content p {
-            color: #cbd5e1;
-            font-size: 17px;
-            line-height: 1.65;
-            max-width: 520px;
-        }
-
-        .brand-footer {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
-        }
-
-        .mini-stat {
-            padding: 16px;
-            border-radius: 18px;
-            background: rgba(2, 6, 23, 0.36);
-            border: 1px solid rgba(148, 163, 184, 0.14);
-        }
-
-        .mini-stat strong {
-            display: block;
-            font-size: 18px;
-            margin-bottom: 4px;
-        }
-
-        .mini-stat span {
-            display: block;
-            color: var(--muted);
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .login-card {
-            padding: 38px;
-            align-self: center;
-            background:
-                linear-gradient(145deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.92));
-        }
-
-        .login-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 92% 0%, rgba(99, 102, 241, 0.22), transparent 35%),
-                radial-gradient(circle at 0% 100%, rgba(14, 165, 233, 0.12), transparent 38%);
-            pointer-events: none;
-        }
-
-        .login-card > * {
-            position: relative;
-            z-index: 1;
-        }
-
-        .login-header {
-            margin-bottom: 28px;
-        }
-
-        .login-header h2 {
-            font-size: 30px;
-            font-weight: 900;
-            letter-spacing: -0.045em;
-            margin-bottom: 8px;
-        }
-
-        .login-header p {
-            color: var(--muted);
-            font-size: 15px;
-            line-height: 1.55;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        label {
-            display: block;
-            color: #dbeafe;
-            font-size: 13px;
-            font-weight: 800;
-            margin-bottom: 9px;
-        }
-
-        .password-wrap {
-            position: relative;
-        }
-
-        input {
-            width: 100%;
-            height: 54px;
-            border-radius: 14px;
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            background: rgba(226, 232, 240, 0.96);
-            color: #0f172a;
-            padding: 0 58px 0 16px;
-            font-size: 16px;
-            font-weight: 700;
-            outline: none;
-            transition: 0.2s ease;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-        }
-
-        input:focus {
-            border-color: var(--blue-2);
-            box-shadow:
-                0 0 0 4px rgba(56, 189, 248, 0.18),
-                inset 0 1px 0 rgba(255, 255, 255, 0.7);
-            background: #f8fafc;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 8px;
-            top: 8px;
-            width: 40px;
-            height: 38px;
-            border: 0;
-            border-radius: 11px;
-            background: #64748b;
-            color: #fff;
-            cursor: pointer;
-            display: grid;
-            place-items: center;
-            font-size: 16px;
-            transition: 0.2s ease;
-        }
-
-        .toggle-password:hover {
-            background: #475569;
-            transform: translateY(-1px);
-        }
-
-        .btn-login {
-            width: 100%;
-            height: 56px;
-            border: 0;
-            border-radius: 14px;
-            color: white;
-            background:
-                linear-gradient(135deg, #2563eb, #1d4ed8 45%, #2563eb);
-            font-weight: 900;
-            font-size: 15px;
-            letter-spacing: 0.04em;
-            cursor: pointer;
-            box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
-            transition: 0.2s ease;
-            margin-top: 2px;
-        }
-
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 22px 44px rgba(37, 99, 235, 0.34);
-            filter: brightness(1.04);
-        }
-
-        .btn-login:active {
-            transform: translateY(0);
-        }
-
-        .btn-login:disabled {
-            cursor: not-allowed;
-            opacity: 0.72;
-            transform: none;
-        }
-
-        .msg {
-            min-height: 22px;
-            margin-top: 14px;
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--danger);
-        }
-
-        .security-line {
-            margin-top: 26px;
-            padding-top: 22px;
-            border-top: 1px solid rgba(148, 163, 184, 0.14);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .security-line .status-dot {
-            width: 7px;
-            height: 7px;
-            box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.12);
-        }
-
-        .keyboard-hint {
-            margin-top: 16px;
-            color: var(--muted-2);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        @media (max-width: 900px) {
-            body {
-                align-items: flex-start;
-                overflow: auto;
-            }
-
-            .login-shell {
-                grid-template-columns: 1fr;
-                max-width: 560px;
-            }
-
-            .brand-card {
-                min-height: 330px;
-                padding: 32px;
-            }
-
-            .brand-footer {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 560px) {
-            body {
-                padding: 18px;
-            }
-
-            .brand-card,
-            .login-card {
-                border-radius: 22px;
-            }
-
-            .brand-card,
-            .login-card {
-                padding: 24px;
-            }
-
-            .brand-top {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .brand-content h1 {
-                font-size: 42px;
-            }
-
-            .brand-content p {
-                font-size: 15px;
-            }
-
-            .login-header h2 {
-                font-size: 26px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <main class="login-shell">
-        <section class="brand-card" aria-label="Controle de Chaves">
-            <div class="brand-top">
-                <div class="logo-box" aria-hidden="true">🔑</div>
-
-                <div class="status-pill">
-                    <span class="status-dot"></span>
-                    Sistema ativo
-                </div>
-            </div>
-
-            <div class="brand-content">
-                <div class="eyebrow">Central de Segurança</div>
-
-                <h1>Controle de Chaves</h1>
-
-                <p>
-                    Acesso restrito para operadores autorizados. Registre retiradas,
-                    devoluções e acompanhe as movimentações com segurança.
-                </p>
-            </div>
-
-            <div class="brand-footer">
-                <div class="mini-stat">
-                    <strong>24h</strong>
-                    <span>Controle por plantão</span>
-                </div>
-
-                <div class="mini-stat">
-                    <strong>Logs</strong>
-                    <span>Rastreamento de ações</span>
-                </div>
-
-                <div class="mini-stat">
-                    <strong>Backup</strong>
-                    <span>Espelho em planilha</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="login-card" aria-label="Entrar no sistema">
-            <div class="login-header">
-                <h2>Entrar no sistema</h2>
-                <p>Informe a senha de acesso para continuar.</p>
-            </div>
-
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="senha">Senha de acesso</label>
-
-                    <div class="password-wrap">
-                        <input
-                            id="senha"
-                            name="senha"
-                            type="password"
-                            autocomplete="current-password"
-                            placeholder="Digite sua senha"
-                            required
-                            autofocus
-                        >
-
-                        <button
-                            type="button"
-                            class="toggle-password"
-                            id="togglePassword"
-                            aria-label="Mostrar ou ocultar senha"
-                            title="Mostrar ou ocultar senha"
-                        >
-                            👁
-                        </button>
-                    </div>
-                </div>
-
-                <button class="btn-login" id="btnLogin" type="submit">
-                    ENTRAR
-                </button>
-
-                <div class="msg" id="msgLogin"></div>
-            </form>
-
-            <div class="security-line">
-                <span class="status-dot"></span>
-                Sistema protegido por autenticação
-            </div>
-
-            <div class="keyboard-hint">
-                Pressione Enter para acessar. A sessão permanece ativa por tempo limitado.
-            </div>
-        </section>
-    </main>
-
-    <script>
-        const form = document.getElementById('loginForm');
-        const senhaInput = document.getElementById('senha');
-        const btnLogin = document.getElementById('btnLogin');
-        const msgLogin = document.getElementById('msgLogin');
-        const togglePassword = document.getElementById('togglePassword');
-
-        togglePassword.addEventListener('click', () => {
-            const mostrando = senhaInput.type === 'text';
-
-            senhaInput.type = mostrando ? 'password' : 'text';
-            togglePassword.textContent = mostrando ? '👁' : '🙈';
-            senhaInput.focus();
-        });
-
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            const senha = senhaInput.value.trim();
-
-            if (!senha) {
-                msgLogin.textContent = 'Informe a senha de acesso.';
-                senhaInput.focus();
-                return;
-            }
-
-            btnLogin.disabled = true;
-            btnLogin.textContent = 'ENTRANDO...';
-            msgLogin.textContent = '';
-
-            try {
-                const resp = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        senha: senha,
-                        password: senha
-                    })
-                });
-
-                const data = await resp.json().catch(() => null);
-
-                if (!resp.ok || !data || !data.sucesso) {
-                    msgLogin.textContent = data && data.erro
-                        ? data.erro
-                        : 'Senha inválida. Tente novamente.';
-
-                    senhaInput.select();
-                    return;
-                }
-
-                window.location.replace('/');
-            } catch (erro) {
-                msgLogin.textContent = 'Erro de conexão. Verifique a internet e tente novamente.';
-            } finally {
-                btnLogin.disabled = false;
-                btnLogin.textContent = 'ENTRAR';
-            }
-        });
-    </script>
-</body>
-</html>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', Arial, sans-serif;
+}
+
+/* ============================================
+   TOKENS — todas as cores/medidas do sistema
+   vivem aqui. Trocar o visual = trocar valores
+   nesta lista, sem mexer no resto do arquivo.
+   ============================================ */
+:root {
+    /* fundo — grafite/obsidiana, não mais azul-elétrico */
+    --bg-fundo: #06070a;
+    --bg-fundo-2: #0a0c11;
+
+    /* painéis */
+    --bg-card: #12141b;
+    --bg-card-forte: #171a22;
+    --bg-card-hover: #191c25;
+    --bg-input: #0d0f15;
+    --bg-input-focus: #0a0b10;
+
+    --borda: rgba(148, 153, 166, 0.12);
+    --borda-media: rgba(148, 153, 166, 0.20);
+    --borda-forte: rgba(148, 153, 166, 0.32);
+
+    --texto-principal: #f6f4ee;
+    --texto-secundario: #cfd2da;
+    --texto-fraco: #8d919d;
+    --texto-muito-fraco: #63666f;
+
+    /* acento principal — latão, a "assinatura" do projeto */
+    --latao: #c9a227;
+    --latao-claro: #e8c468;
+    --latao-fraco: rgba(201, 162, 39, 0.12);
+    --latao-borda: rgba(201, 162, 39, 0.34);
+
+    /* acento secundário — aço, usado só pra diferenciar "retirada" no histórico */
+    --aco: #7c93b3;
+    --aco-fraco: rgba(124, 147, 179, 0.14);
+    --aco-borda: rgba(124, 147, 179, 0.32);
+
+    --verde: #34d399;
+    --verde-hover: #10b981;
+    --verde-fraco: rgba(52, 211, 153, 0.14);
+
+    --vermelho: #f0555c;
+    --vermelho-hover: #dc4249;
+    --vermelho-fraco: rgba(240, 85, 92, 0.14);
+
+    --sombra-card: 0 16px 40px rgba(0, 0, 0, 0.40);
+    --sombra-card-forte: 0 24px 60px rgba(0, 0, 0, 0.55);
+    --sombra-suave: 0 8px 20px rgba(0, 0, 0, 0.28);
+    --sombra-latao: 0 12px 28px rgba(201, 162, 39, 0.22);
+    --sombra-verde: 0 12px 24px rgba(16, 185, 129, 0.24);
+
+    --radius-card: 14px;
+    --radius-input: 10px;
+    --radius-pill: 999px;
+
+    --tempo: 0.2s ease;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    color: var(--texto-principal);
+    background:
+        radial-gradient(circle at 12% 8%, rgba(201, 162, 39, 0.05), transparent 30%),
+        linear-gradient(160deg, var(--bg-fundo) 0%, var(--bg-fundo-2) 55%, var(--bg-fundo) 100%);
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+    overflow-x: hidden;
+}
+
+/* grade sutil de fundo, tipo "planta técnica" — bem discreta */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(148, 153, 166, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 153, 166, 0.028) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent 75%);
+}
+
+::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-fundo);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2a2d36;
+    border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--latao);
+}
+
+::selection {
+    background-color: var(--latao-fraco);
+    color: var(--latao-claro);
+}
+
+/* ============================================
+   ESTRUTURA PRINCIPAL
+   ============================================ */
+
+.dashboard {
+    width: 100%;
+    max-width: 1180px;
+    position: relative;
+    z-index: 1;
+    animation: entradaDashboard 0.45s ease both;
+}
+
+/* ---------- Cabeçalho ---------- */
+
+.painel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 22px;
+    padding: 6px 4px 24px;
+    margin-bottom: 26px;
+    border-bottom: 1px solid var(--borda);
+}
+
+.header-titulo {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* selo pequeno acima do nome do sistema */
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 5px 11px;
+    border-radius: var(--radius-pill);
+    color: var(--latao-claro);
+    background: var(--latao-fraco);
+    border: 1px solid var(--latao-borda);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.marca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.marca-icone {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--latao-fraco);
+    border: 1px solid var(--latao-borda);
+    color: var(--latao-claro);
+    flex-shrink: 0;
+}
+
+.marca-icone svg {
+    width: 20px;
+    height: 20px;
+}
+
+.header-titulo h1 {
+    font-size: clamp(1.3rem, 3vw, 1.6rem);
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--texto-principal);
+}
+
+.header-acoes {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Status do operador */
+
+.status-sistema {
+    font-family: 'Roboto Mono', Consolas, monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    width: fit-content;
+    padding: 3px 0;
+    color: var(--texto-fraco);
+}
+
+.status-sistema.ativo {
+    color: var(--verde);
+}
+
+.status-sistema.ativo::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background-color: var(--verde);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.85);
+    animation: pulsaLuz 1.8s infinite ease-in-out;
+}
+
+.status-sistema.inativo {
+    color: var(--vermelho);
+}
+
+.status-sistema.inativo::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    background-color: var(--vermelho);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 10px rgba(240, 85, 92, 0.75);
+}
+
+/* Relógio */
+
+.relogio {
+    font-family: 'Roboto Mono', Consolas, monospace;
+    font-size: clamp(1.5rem, 3.4vw, 1.9rem);
+    font-weight: 700;
+    color: var(--latao-claro);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+/* ---------- Estatísticas ---------- */
+
+.estatisticas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.card-stat {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    box-shadow: var(--sombra-suave);
+    padding: 22px 18px;
+    border-radius: var(--radius-card);
+    text-align: center;
+    transition: transform var(--tempo), border-color var(--tempo), box-shadow var(--tempo);
+}
+
+/* cantos estilo "terminal de segurança" — a assinatura visual do painel */
+.card-stat::before,
+.painel-controle::before,
+.painel-historico::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    border-top: 2px solid var(--latao-borda);
+    border-left: 2px solid var(--latao-borda);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.card-stat::after,
+.painel-controle::after,
+.painel-historico::after {
+    content: '';
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 16px;
+    height: 16px;
+    border-bottom: 2px solid var(--latao-borda);
+    border-right: 2px solid var(--latao-borda);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.card-stat:hover {
+    transform: translateY(-2px);
+    border-color: var(--borda-forte);
+    box-shadow: var(--sombra-card);
+}
+
+.card-stat.total::before,
+.card-stat.total::after {
+    border-color: var(--latao-borda);
+}
+
+.card-stat.em-uso::before,
+.card-stat.em-uso::after {
+    border-color: rgba(240, 85, 92, 0.4);
+}
+
+.card-stat.disponivel::before,
+.card-stat.disponivel::after {
+    border-color: rgba(52, 211, 153, 0.4);
+}
+
+.card-stat h3 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--texto-fraco);
+    margin-bottom: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.card-stat p {
+    font-family: 'Roboto Mono', Consolas, monospace;
+    font-size: 2.5rem;
+    line-height: 1;
+    font-weight: 700;
+    color: var(--texto-principal);
+}
+
+.card-stat.em-uso p {
+    color: var(--vermelho);
+}
+
+.card-stat.disponivel p {
+    color: var(--verde);
+}
+
+/* ---------- Painel de retirada ---------- */
+
+.painel-controle {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    box-shadow: var(--sombra-card);
+    padding: 24px;
+    border-radius: var(--radius-card);
+    margin-bottom: 24px;
+}
+
+.painel-controle h3 {
+    font-size: 1rem;
+    margin-bottom: 18px;
+    font-weight: 800;
+    color: var(--texto-principal);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.painel-controle h3::before {
+    content: '';
+    width: 3px;
+    height: 15px;
+    background: var(--latao);
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.input-group {
+    display: grid;
+    grid-template-columns: minmax(280px, 1.2fr) minmax(260px, 1fr);
+    gap: 14px;
+    align-items: stretch;
+}
+
+#solicitante {
+    grid-column: 1;
+}
+
+#setor {
+    grid-column: 2;
+}
+
+#filtroChave {
+    grid-column: 1;
+}
+
+#chaveDisponivel {
+    grid-column: 2;
+}
+
+.input-group button {
+    grid-column: 1 / -1;
+    justify-self: flex-end;
+    min-width: 170px;
+}
+
+/* ---------- Inputs, selects e botões ---------- */
+
+input,
+select,
+button {
+    min-height: 46px;
+    padding: 0 15px;
+    background: var(--bg-input);
+    border: 1px solid var(--borda-media);
+    color: var(--texto-principal);
+    border-radius: var(--radius-input);
+    outline: none;
+    font-size: 0.92rem;
+    transition: border-color var(--tempo), box-shadow var(--tempo), transform 0.12s ease, opacity var(--tempo);
+}
+
+input::placeholder {
+    color: var(--texto-muito-fraco);
+}
+
+input:hover,
+select:hover {
+    border-color: var(--borda-forte);
+}
+
+input:focus,
+select:focus {
+    border-color: var(--latao);
+    background-color: var(--bg-input-focus);
+    box-shadow: 0 0 0 3px var(--latao-fraco);
+}
+
+select {
+    cursor: pointer;
+}
+
+button {
+    border: 0;
+    background: var(--latao);
+    color: #12140a;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    padding: 0 22px;
+    box-shadow: var(--sombra-latao);
+}
+
+button:hover {
+    background: var(--latao-claro);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px rgba(201, 162, 39, 0.28);
+}
+
+button:active,
+select:active,
+input:active {
+    transform: scale(0.985);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-sair {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 0.74rem;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--borda-forte);
+    color: var(--texto-secundario);
+    box-shadow: none;
+    font-weight: 700;
+}
+
+.btn-sair:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--vermelho);
+    color: var(--vermelho);
+    transform: none;
+    box-shadow: none;
+}
+
+#limparFiltroHistorico {
+    min-width: 100px;
+    background: transparent;
+    border: 1px solid var(--borda-forte);
+    color: var(--texto-secundario);
+    box-shadow: none;
+}
+
+#limparFiltroHistorico:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--latao-borda);
+    color: var(--latao-claro);
+    box-shadow: none;
+}
+
+/* ---------- Mensagens ---------- */
+
+.msg {
+    margin-top: 12px;
+    min-height: 20px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--verde);
+}
+
+.msg.erro {
+    color: var(--vermelho);
+}
+
+/* ---------- Chaves em uso ---------- */
+
+.painel-lista {
+    margin-bottom: 26px;
+}
+
+.titulo-lista {
+    margin: 22px 0 12px;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--texto-principal);
+}
+
+.lista-chaves {
+    list-style-type: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lista-chaves li {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-left: 3px solid var(--latao);
+    box-shadow: var(--sombra-suave);
+    padding: 16px 18px;
+    border-radius: var(--radius-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    animation: fadeIn 0.28s ease both;
+    transition: transform var(--tempo), border-color var(--tempo), background var(--tempo);
+}
+
+.lista-chaves li:hover {
+    transform: translateY(-1px);
+    background: var(--bg-card-hover);
+    border-color: var(--borda-forte);
+}
+
+.info-chave {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.texto-chave {
+    font-family: 'Roboto Mono', Consolas, monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--texto-principal);
+    word-break: break-word;
+}
+
+.detalhes-registro {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detalhes-registro span {
+    color: var(--texto-secundario);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    font-weight: 500;
+}
+
+.detalhes-registro b {
+    color: var(--texto-principal);
+    font-weight: 700;
+}
+
+.acoes {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.acoes button {
+    min-height: 36px;
+    padding: 0 16px;
+    font-size: 0.76rem;
+    border-radius: 8px;
+}
+
+.btn-devolver {
+    background: var(--verde);
+    color: #06170f;
+    box-shadow: 0 10px 18px rgba(52, 211, 153, 0.22);
+}
+
+.btn-devolver:hover {
+    background: #4ee0ab;
+    box-shadow: var(--sombra-verde);
+}
+
+/* ---------- Histórico ---------- */
+
+.painel-historico {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    box-shadow: var(--sombra-card);
+    padding: 24px;
+    border-radius: var(--radius-card);
+}
+
+.historico-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.historico-topo h3 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--texto-principal);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.historico-topo h3::before {
+    content: '';
+    width: 3px;
+    height: 15px;
+    background: var(--latao);
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.historico-topo p {
+    font-size: 0.82rem;
+    color: var(--texto-fraco);
+    line-height: 1.45;
+}
+
+.contador-historico {
+    font-family: 'Roboto Mono', Consolas, monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--latao-claro);
+    background: var(--latao-fraco);
+    border: 1px solid var(--latao-borda);
+    padding: 6px 10px;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+}
+
+.historico-busca {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.lista-historico {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.lista-historico li {
+    background: var(--bg-fundo-2);
+    border: 1px solid var(--borda);
+    border-radius: 11px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: center;
+    animation: fadeIn 0.28s ease both;
+    transition: background var(--tempo), border-color var(--tempo);
+}
+
+.lista-historico li:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--borda-forte);
+}
+
+.badge-evento {
+    min-width: 92px;
+    text-align: center;
+    padding: 6px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* retirada = aço (saiu do cofre) | devolução = verde (voltou) */
+.badge-retirada {
+    background: var(--aco-fraco);
+    color: var(--aco);
+    border: 1px solid var(--aco-borda);
+}
+
+.badge-devolucao {
+    background: var(--verde-fraco);
+    color: var(--verde);
+    border: 1px solid rgba(52, 211, 153, 0.32);
+}
+
+.historico-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.historico-info strong {
+    font-family: 'Roboto Mono', Consolas, monospace;
+    color: var(--texto-principal);
+    font-size: 1rem;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.historico-detalhes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.historico-detalhes span {
+    color: var(--texto-secundario);
+    font-size: 0.86rem;
+    line-height: 1.45;
+    font-weight: 500;
+}
+
+.historico-detalhes b {
+    color: var(--texto-principal);
+    font-weight: 700;
+}
+
+.historico-data {
+    color: var(--texto-fraco);
+    font-family: 'Roboto Mono', Consolas, monospace;
+    font-size: 0.76rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.item-vazio {
+    grid-template-columns: 1fr !important;
+    color: var(--texto-fraco);
+    text-align: left;
+}
+
+/* ---------- Estados visuais extras ---------- */
+
+.carregando {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.oculto {
+    display: none !important;
+}
+
+/* ============================================
+   ANIMAÇÕES
+   ============================================ */
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes entradaDashboard {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulsaLuz {
+    0% { transform: scale(0.9); opacity: 0.55; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
+    50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+    100% { transform: scale(0.9); opacity: 0.55; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+/* ============================================
+   RESPONSIVO
+   ============================================ */
+
+@media (max-width: 1100px) {
+    .dashboard {
+        max-width: 980px;
+    }
+
+    .input-group {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .input-group button {
+        grid-column: 1 / -1;
+        justify-self: flex-end;
+    }
+}
+
+@media (max-width: 840px) {
+    body {
+        padding: 20px 10px;
+    }
+
+    .painel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .header-acoes {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .estatisticas {
+        grid-template-columns: 1fr;
+    }
+
+    .card-stat p {
+        font-size: 2.2rem;
+    }
+
+    .painel-controle,
+    .painel-historico {
+        padding: 18px;
+    }
+
+    .input-group {
+        grid-template-columns: 1fr;
+    }
+
+    #solicitante,
+    #setor,
+    #filtroChave,
+    #chaveDisponivel,
+    .input-group button {
+        width: 100%;
+        grid-column: 1;
+    }
+
+    .input-group button {
+        justify-self: stretch;
+    }
+
+    .lista-chaves li {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px;
+    }
+
+    .acoes {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .acoes button {
+        width: 100%;
+    }
+
+    .historico-topo {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .historico-busca {
+        grid-template-columns: 1fr;
+    }
+
+    #limparFiltroHistorico {
+        width: 100%;
+    }
+
+    .lista-historico li {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
+
+    .badge-evento {
+        min-width: auto;
+        width: fit-content;
+    }
+
+    .historico-data {
+        white-space: normal;
+    }
+}
+
+@media (max-width: 520px) {
+    body {
+        padding: 16px 9px;
+    }
+
+    .header-titulo h1 {
+        font-size: 1.2rem;
+    }
+
+    .header-acoes {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .relogio {
+        font-size: 1.5rem;
+    }
+
+    .btn-sair {
+        width: 100%;
+    }
+
+    .painel-controle,
+    .painel-historico {
+        padding: 16px;
+    }
+
+    input,
+    select,
+    button {
+        min-height: 44px;
+        font-size: 0.86rem;
+    }
+
+    .texto-chave {
+        font-size: 1rem;
+    }
+
+    .detalhes-registro span,
+    .historico-detalhes span {
+        font-size: 0.84rem;
+    }
+
+    .historico-info strong {
+        font-size: 0.94rem;
+    }
+
+    .historico-data {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .card-stat p {
+        font-size: 1.9rem;
+    }
+
+    .badge-evento {
+        font-size: 0.66rem;
+    }
+
+    button {
+        padding: 0 14px;
+    }
+}

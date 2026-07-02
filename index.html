@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;600;700&display=swap"
         rel="stylesheet"
     >
 
@@ -24,7 +24,19 @@
 
         <header class="painel-header">
             <div class="header-titulo">
-                <h1>🔑 Controle de Chaves</h1>
+                <span class="eyebrow">Central de Segurança</span>
+
+                <div class="marca">
+                    <span class="marca-icone" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="6.2" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="11" cy="11" r="1.8" fill="currentColor"/>
+                            <path d="M15.3 15.3L26 26M20.6 20.6L23.6 17.6M23 23L26 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+
+                    <h1>Controle de Chaves</h1>
+                </div>
 
                 <div id="statusOperador" class="status-sistema ativo">
                     Operador:
@@ -98,7 +110,7 @@
             <h3 class="titulo-lista">Chaves em uso</h3>
 
             <ul id="listaPendentes" class="lista-chaves">
-                <li>Carregando chaves em uso...</li>
+                <li class="item-vazio">Carregando chaves em uso...</li>
             </ul>
 
             <div id="msgDevolucao" class="msg"></div>
